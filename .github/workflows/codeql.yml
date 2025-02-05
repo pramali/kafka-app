@@ -17,40 +17,25 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Verify Windows Architecture
+      - name: Install Gitleaks using Chocolatey
         run: |
-          # Display system architecture for debugging
-          systeminfo | findstr /C:"OS Architecture"
+          # Ensure Chocolatey is installed
+          Set-ExecutionPolicy Bypass -Scope Process -Force
+          [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+          Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
 
-      - name: Download and Install Gitleaks
-        run: |
-          # Set Gitleaks version
-          $GITLEAKS_VERSION="8.17.0"
-          
-          # Download Gitleaks for Windows (64-bit)
-          Invoke-WebRequest -Uri "https://github.com/gitleaks/gitleaks/releases/download/v$GITLEAKS_VERSION/gitleaks_$GITLEAKS_VERSION_windows_x64.zip" -OutFile "gitleaks.zip"
-
-          # Extract the zip file
-          Expand-Archive -Path "gitleaks.zip" -DestinationPath "." -Force
-
-          # Rename the extracted binary for consistency
-          Rename-Item -Path ".\gitleaks.exe" -NewName "gitleaks.exe" -Force
-
-          # Check if the executable exists
-          if (!(Test-Path -Path ".\gitleaks.exe")) {
-            Write-Error "Gitleaks binary not found after extraction!"
-            exit 1
-          }
+          # Install Gitleaks
+          choco install gitleaks -y --no-progress
 
       - name: Verify Gitleaks Installation
         run: |
-          # Ensure Gitleaks runs correctly before scanning
-          .\gitleaks.exe version
+          # Ensure Gitleaks is installed correctly
+          gitleaks version
 
       - name: Run Gitleaks Secret Scan
         run: |
           # Scan the repository for secrets and generate a SARIF report
-          .\gitleaks.exe detect --source . --report-format=sarif --report-path=gitleaks.sarif || echo "Gitleaks scan completed with issues"
+          gitleaks detect --source . --report-format=sarif --report-path=gitleaks.sarif || echo "Gitleaks scan completed with issues"
 
       - name: Upload SARIF Report to GitHub Security Alerts
         uses: github/codeql-action/upload-sarif@v2
