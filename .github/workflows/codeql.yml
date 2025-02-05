@@ -24,7 +24,7 @@ jobs:
 
       - name: Run Gitleaks Secret Scan
         run: |
-          .\gitleaks.exe detect --report-format=sarif --report-path=gitleaks.sarif || echo "Gitleaks scan completed with issues"
+          .\gitleaks.exe detect --report-format=sarif --report-path=gitleaks.sarif --no-git || echo "Gitleaks scan completed with issues"
 
       - name: Upload SARIF Report to GitHub Security Alerts
         uses: github/codeql-action/upload-sarif@v2
