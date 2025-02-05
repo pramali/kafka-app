@@ -17,14 +17,19 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install Gitleaks on Windows
+      - name: Download and Install Gitleaks on Windows
         run: |
           Invoke-WebRequest -Uri "https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks-windows-amd64.exe" -OutFile "gitleaks.exe"
+          Move-Item -Path "gitleaks.exe" -Destination "C:\Program Files\gitleaks.exe"
           echo "Gitleaks installed successfully"
+
+      - name: Verify Gitleaks Installation
+        run: |
+          C:\Program Files\gitleaks.exe version
 
       - name: Run Gitleaks Secret Scan
         run: |
-          .\gitleaks.exe detect --report-format=sarif --report-path=gitleaks.sarif --no-git || echo "Gitleaks scan completed with issues"
+          C:\Program Files\gitleaks.exe detect --report-format=sarif --report-path=gitleaks.sarif --no-git || echo "Gitleaks scan completed with issues"
 
       - name: Upload SARIF Report to GitHub Security Alerts
         uses: github/codeql-action/upload-sarif@v2
