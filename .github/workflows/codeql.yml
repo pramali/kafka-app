@@ -17,16 +17,27 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Download Correct Gitleaks Binary for Windows
+      - name: Verify Architecture and Download Gitleaks for Windows
         run: |
-          # Download the correct Gitleaks release for Windows 64-bit (amd64)
+          # Verify the system architecture
+          systeminfo | findstr /C:"OS Architecture"
+
+          # Download the correct Gitleaks binary (64-bit version)
           curl -L -o gitleaks.exe "https://github.com/gitleaks/gitleaks/releases/download/v8.6.0/gitleaks-windows-amd64.exe"
           
-          # Ensure the file is downloaded
+          # Verify the file was downloaded
           if (!(Test-Path -Path ".\gitleaks.exe")) {
             Write-Error "Gitleaks download failed"
             exit 1
           }
+
+      - name: Debug Gitleaks Installation
+        run: |
+          # Show contents of the current directory to verify gitleaks.exe is here
+          dir
+
+          # Attempt to execute Gitleaks and verify it's working
+          .\gitleaks.exe --version
 
       - name: Run Gitleaks Secret Scan
         run: |
