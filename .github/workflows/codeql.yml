@@ -17,12 +17,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Download Gitleaks for Windows
+      - name: Download Gitleaks for Windows using curl
         run: |
-          # Download the latest Gitleaks release for Windows
-          Invoke-WebRequest -Uri "https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks-windows-amd64.exe" -OutFile "gitleaks.exe"
+          # Download the latest Gitleaks release for Windows using curl
+          curl -L -o gitleaks.exe "https://github.com/gitleaks/gitleaks/releases/download/v8.6.0/gitleaks-windows-amd64.exe"
           
-          # Check if Gitleaks is downloaded successfully
+          # Check if the file is downloaded
           if (!(Test-Path -Path ".\gitleaks.exe")) {
             Write-Error "Gitleaks download failed"
             exit 1
