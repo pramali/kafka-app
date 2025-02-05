@@ -19,29 +19,19 @@ jobs:
 
       - name: Install Python and TruffleHog
         run: |
-          # Install Python directly from the official website
           Invoke-WebRequest -Uri https://www.python.org/ftp/python/3.8.8/python-3.8.8-amd64.exe -OutFile python-installer.exe
           Start-Process -FilePath python-installer.exe -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1" -Wait
           python --version
 
           # Install TruffleHog
-          #pip install truffleHog3
-          #pip install truffleHog3 --verbose
-          pip install  --upgrade truffleHog3
+          pip install --upgrade truffleHog3
 
-      - name: Run TruffleHog Scan for Secrets
+      - name: Run TruffleHog and Generate SARIF
         run: |
-          # Scan the repository for secrets like API keys, passwords, tokens, etc.
-          trufflehog3 ./
-          #trufflehog3 ./ --debug || echo "TruffleHog scan failed with exit code $?"
-          #trufflehog3 --json ./ > trufflehog_output.json
-          
-          # Convert JSON to SARIF using truffleHog's built-in support
-          #trufflehog3 --json ./ | python -m truffleHog3.parsers.sarif > trufflehog_output.sarif
-          #trufflehog3 ./ > trufflehog_output.sarif
+          # Run TruffleHog and output results in SARIF format
+          trufflehog3 --sarif ./ > trufflehog_output.sarif
 
       - name: Upload SARIF as GitHub Code Scanning Alert
         uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: trufflehog_output.sarif
-     
