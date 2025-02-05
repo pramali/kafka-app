@@ -26,7 +26,7 @@ jobs:
     - name: Run TruffleHog Scan for Secrets
       run: |
         # Run TruffleHog scan, outputting to a JSON file
-        trufflehog --output trufflehog_output.json ./  # Adjusted for TruffleHog v3 output
+         trufflehog --json . > trufflehog_output.json  # Save the output to trufflehog_output.json
         # List the files in the current directory to verify the output file exists
         dir
 
