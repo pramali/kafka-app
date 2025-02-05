@@ -7,7 +7,7 @@ on:
 
 jobs:
   scan-and-upload:
-    runs-on: windows-latest
+    runs-on: windows-latest  # This is a Windows runner
 
     steps:
     - name: Checkout repository
@@ -15,31 +15,33 @@ jobs:
 
     - name: Install Python and TruffleHog
       run: |
-          # Install Python directly from the official website
-          Invoke-WebRequest -Uri https://www.python.org/ftp/python/3.8.8/python-3.8.8-amd64.exe -OutFile python-installer.exe
-          Start-Process -FilePath python-installer.exe -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1" -Wait
-          python --version
+        # Install Python directly from the official website
+        Invoke-WebRequest -Uri https://www.python.org/ftp/python/3.8.8/python-3.8.8-amd64.exe -OutFile python-installer.exe
+        Start-Process -FilePath python-installer.exe -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1" -Wait
+        python --version
 
-          # Install TruffleHog
-          #pip install truffleHog3
-          #pip install truffleHog3 --verbose
-          pip install  --upgrade truffleHog3
+        # Install TruffleHog
+        pip install --upgrade truffleHog
 
     - name: Run TruffleHog Scan for Secrets
       run: |
-        trufflehog3 --output trufflehog_output.json ./   # Adjusted for TruffleHog v3 output
-        ls -l trufflehog_output.json  # List files to verify it was created
+        # Run TruffleHog scan, outputting to a JSON file
+        trufflehog --output trufflehog_output.json ./  # Adjusted for TruffleHog v3 output
+        # List the files in the current directory to verify the output file exists
+        dir
 
-    - name: Check if SARIF file exists
+    - name: Check if JSON file exists
       run: |
-        if [ ! -f trufflehog_output.json ]; then
-          echo "trufflehog_output.json does not exist."
+        if (!(Test-Path -Path "trufflehog_output.json")) {
+          Write-Host "trufflehog_output.json does not exist."
           exit 1
-        fi
+        } else {
+          Write-Host "trufflehog_output.json exists."
+        }
 
-    - name: Upload SARIF file to GitHub Code Scanning Alerts
+    - name: Upload JSON to GitHub Code Scanning Alerts
       uses: github/codeql-action/upload-sarif@v3
       with:
-        sarif_file: trufflehog_output.json  # Update this based on the file name
+        sarif_file: trufflehog_output.json  # Ensure correct output file path
         token: ${{ secrets.GITHUB_TOKEN }}
         wait-for-processing: true
