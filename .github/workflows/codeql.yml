@@ -36,8 +36,13 @@ jobs:
           # Show contents of the current directory to verify gitleaks.exe is here
           dir
 
-          # Attempt to execute Gitleaks and verify it's working
-          .\gitleaks.exe --version
+          # Attempt to execute Gitleaks with --version flag for debugging
+          try {
+            .\gitleaks.exe --version
+          } catch {
+            Write-Error "Failed to run gitleaks.exe: $_"
+            exit 1
+          }
 
       - name: Run Gitleaks Secret Scan
         run: |
