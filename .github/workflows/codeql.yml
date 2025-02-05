@@ -36,8 +36,10 @@ jobs:
           exit 0
          
 
-      - name: Upload SARIF as GitHub Code Scanning Alert
-        uses: github/codeql-action/upload-sarif@v2
+      - name: Upload SARIF file to GitHub Code Scanning Alerts
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trufflehog_output.sarif
+          token: ${{ secrets.GITHUB_TOKEN }}
+          wait-for-processing: true
      
