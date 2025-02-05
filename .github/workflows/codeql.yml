@@ -19,23 +19,26 @@ jobs:
 
       - name: Install Gitleaks using Chocolatey
         run: |
-          # Ensure Chocolatey is installed
           Set-ExecutionPolicy Bypass -Scope Process -Force
           [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
           Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-
-          # Install Gitleaks
           choco install gitleaks -y --no-progress
 
       - name: Verify Gitleaks Installation
-        run: |
-          # Ensure Gitleaks is installed correctly
-          gitleaks version
+        run: gitleaks version
 
       - name: Run Gitleaks Secret Scan
+        run: gitleaks detect --source . --report-format=sarif --report-path=gitleaks.sarif || echo "Gitleaks scan completed with issues"
+
+      - name: Debug SARIF Report
         run: |
-          # Scan the repository for secrets and generate a SARIF report
-          gitleaks detect --source . --report-format=sarif --report-path=gitleaks.sarif || echo "Gitleaks scan completed with issues"
+          if (Test-Path "gitleaks.sarif") {
+            echo "SARIF report generated successfully:"
+            Get-Content gitleaks.sarif
+          } else {
+            echo "❌ SARIF report NOT found!"
+            exit 1
+          }
 
       - name: Upload SARIF Report to GitHub Security Alerts
         uses: github/codeql-action/upload-sarif@v2
