@@ -28,7 +28,8 @@ jobs:
         run: gitleaks version
 
       - name: Run Gitleaks Secret Scan
-        run: gitleaks detect --source . --report-format=sarif --report-path=gitleaks.sarif || echo "Gitleaks scan completed with issues"
+        run: |
+          gitleaks detect --source . --report-format=sarif --report-path=gitleaks.sarif || echo "Gitleaks scan completed with issues, but workflow continues."
 
       - name: Debug SARIF Report
         run: |
