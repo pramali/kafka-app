@@ -1,4 +1,4 @@
-name: Secret Scanning with Gitleaks on Windows
+name: Gitleaks Secret Scanning
 
 on:
   push:
@@ -10,44 +10,47 @@ on:
 
 jobs:
   scan-secrets:
-    name: Scan for Secrets with Gitleaks on Windows
-    runs-on: windows-latest  # Windows runner
+    name: Scan for Secrets with Gitleaks
+    runs-on: windows-latest
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Verify Architecture and Download Gitleaks for Windows
+      - name: Verify Windows Architecture
         run: |
-          # Verify the system architecture
+          # Display system architecture for debugging
           systeminfo | findstr /C:"OS Architecture"
 
-          # Download the correct Gitleaks binary (64-bit version)
-          curl -L -o gitleaks.exe "https://github.com/gitleaks/gitleaks/releases/download/v8.6.0/gitleaks-windows-amd64.exe"
-          
-          # Verify the file was downloaded
-          if (!(Test-Path -Path ".\gitleaks.exe")) {
-            Write-Error "Gitleaks download failed"
-            exit 1
-          }
-
-      - name: Debug Gitleaks Installation
+      - name: Download and Install Gitleaks
         run: |
-          # Show contents of the current directory to verify gitleaks.exe is here
-          dir
+          # Set Gitleaks version
+          $GITLEAKS_VERSION="8.17.0"
+          
+          # Download Gitleaks for Windows (64-bit)
+          Invoke-WebRequest -Uri "https://github.com/gitleaks/gitleaks/releases/download/v$GITLEAKS_VERSION/gitleaks_$GITLEAKS_VERSION_windows_x64.zip" -OutFile "gitleaks.zip"
 
-          # Attempt to execute Gitleaks with --version flag for debugging
-          try {
-            .\gitleaks.exe --version
-          } catch {
-            Write-Error "Failed to run gitleaks.exe: $_"
+          # Extract the zip file
+          Expand-Archive -Path "gitleaks.zip" -DestinationPath "." -Force
+
+          # Rename the extracted binary for consistency
+          Rename-Item -Path ".\gitleaks.exe" -NewName "gitleaks.exe" -Force
+
+          # Check if the executable exists
+          if (!(Test-Path -Path ".\gitleaks.exe")) {
+            Write-Error "Gitleaks binary not found after extraction!"
             exit 1
           }
+
+      - name: Verify Gitleaks Installation
+        run: |
+          # Ensure Gitleaks runs correctly before scanning
+          .\gitleaks.exe version
 
       - name: Run Gitleaks Secret Scan
         run: |
-          # Run the Gitleaks scan and output to SARIF format
-          .\gitleaks.exe detect --report-format=sarif --report-path=gitleaks.sarif || echo "Gitleaks scan completed with issues"
+          # Scan the repository for secrets and generate a SARIF report
+          .\gitleaks.exe detect --source . --report-format=sarif --report-path=gitleaks.sarif || echo "Gitleaks scan completed with issues"
 
       - name: Upload SARIF Report to GitHub Security Alerts
         uses: github/codeql-action/upload-sarif@v2
