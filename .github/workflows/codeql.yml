@@ -29,7 +29,7 @@ jobs:
 
       - name: Run Gitleaks Secret Scan
         run: |
-          gitleaks detect --source . --report-format=sarif --report-path=gitleaks.sarif || (echo "Gitleaks scan completed with issues, but workflow continues." && exit 0)
+          gitleaks detect --source . --report-format=sarif --report-path=gitleaks.sarif; if ($?) { echo "No secrets found." } else { echo "Gitleaks scan completed with issues, but workflow continues."; exit 0 }
 
       - name: Debug SARIF Report
         run: |
