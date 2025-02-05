@@ -13,6 +13,10 @@ jobs:
     name: Scan for Secrets with Gitleaks
     runs-on: windows-latest
 
+    permissions:
+      contents: read
+      security-events: write  # ✅ This allows SARIF upload to security alerts
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -42,6 +46,8 @@ jobs:
           }
 
       - name: Upload SARIF Report to GitHub Security Alerts
-        uses: github/codeql-action/upload-sarif@v3  # ✅ Updated from v2 to v3
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: gitleaks.sarif
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # ✅ Ensure token is available
