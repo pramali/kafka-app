@@ -32,7 +32,7 @@ jobs:
       - name: Run TruffleHog Scan for Secrets
         run: |
           # Scan the repository for secrets like API keys, passwords, tokens, etc.
-          trufflehog3 ./ || echo "TruffleHog found secrets, but workflow continues."
+          trufflehog3 ./ || (echo "Secrets detected, but continuing workflow." && exit 0)
          
 
       - name: Upload SARIF as GitHub Code Scanning Alert
