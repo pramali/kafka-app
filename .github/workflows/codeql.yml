@@ -42,6 +42,6 @@ jobs:
           }
 
       - name: Upload SARIF Report to GitHub Security Alerts
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3  # ✅ Updated from v2 to v3
         with:
           sarif_file: gitleaks.sarif
