@@ -34,10 +34,11 @@ jobs:
           # Scan the repository for secrets like API keys, passwords, tokens, etc.
           #trufflehog3 ./
           #trufflehog3 ./ --debug || echo "TruffleHog scan failed with exit code $?"
-          trufflehog3 --json ./ > trufflehog_output.json
+          #trufflehog3 --json ./ > trufflehog_output.json
           
           # Convert JSON to SARIF using truffleHog's built-in support
-          trufflehog3 --json ./ | python -m truffleHog3.parsers.sarif > trufflehog_output.sarif
+          #trufflehog3 --json ./ | python -m truffleHog3.parsers.sarif > trufflehog_output.sarif
+          trufflehog3 ./ > trufflehog_output.sarif
 
       - name: Upload SARIF as GitHub Code Scanning Alert
         uses: github/codeql-action/upload-sarif@v2
