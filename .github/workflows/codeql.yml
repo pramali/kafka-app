@@ -1,45 +1,51 @@
-name: Secret Scanning with TruffleHog
+name: Secret Scanning with TruffleHog (Windows)
 
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
     branches:
-      - master
+      - main
 
 jobs:
-  scan-secrets:
-    name: Scan for Secrets on Windows
-    runs-on: windows-latest  # Windows runner
-
+  secret-scan:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+      security-events: write  # Required for SARIF upload
     steps:
-      - name: Checkout Code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Python and TruffleHog
+      - name: Download and Install TruffleHog from GitHub
+        shell: pwsh
         run: |
-          # Install Python directly from the official website
-          Invoke-WebRequest -Uri https://www.python.org/ftp/python/3.8.8/python-3.8.8-amd64.exe -OutFile python-installer.exe
-          Start-Process -FilePath python-installer.exe -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1" -Wait
-          python --version
+          Invoke-WebRequest -Uri "https://github.com/trufflesecurity/trufflehog/releases/latest/download/trufflehog-windows-amd64.exe" -OutFile "trufflehog.exe"
+          echo "TruffleHog installed successfully"
 
-          # Install TruffleHog
-          #pip install truffleHog3
-          #pip install truffleHog3 --verbose
-          pip install  --upgrade truffleHog3
-
-      - name: Run TruffleHog Scan for Secrets
+      - name: Run TruffleHog and generate SARIF
+        shell: pwsh
         run: |
-          # Scan the repository for secrets like API keys, passwords, tokens, etc.
-          trufflehog3 ./ || Write-Host "Secrets detected, but continuing workflow."
-          exit 0
-         
+          .\trufflehog.exe filesystem . --json | Out-File -Encoding utf8 trufflehog_output.json
+          python -c "
+          import json
+          def convert_to_sarif(input_file, output_file):
+              data = json.load(open(input_file, encoding='utf-8'))
+              sarif = {
+                  'version': '2.1.0',
+                  'runs': [{
+                      'tool': {'driver': {'name': 'TruffleHog'}},
+                      'results': [
+                          {'message': {'text': f'Potential secret: {issue}'}}
+                          for issue in data
+                      ]
+                  }]
+              }
+              json.dump(sarif, open(output_file, 'w', encoding='utf-8'))
+          convert_to_sarif('trufflehog_output.json', 'trufflehog_output.sarif')"
 
-      - name: Upload SARIF file to GitHub Code Scanning Alerts
+      - name: Upload SARIF report
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trufflehog_output.sarif
-          token: ${{ secrets.GITHUB_TOKEN }}
-          wait-for-processing: true
-     
