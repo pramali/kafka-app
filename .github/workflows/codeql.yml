@@ -67,7 +67,7 @@ jobs:
           $content = @"
           import json
           try:
-             with open("trufflehog_output.json", "r") as file:
+             with open("trufflehog_output.json", "r", encoding='utf-8') as file:
                   data = json.load(file)
              if not isinstance(data, list):
                   raise ValueError("Unexpected TruffleHog JSON format")
@@ -88,15 +88,15 @@ jobs:
                      ]
             }]
           }
-             with open("trufflehog_output.sarif", "w") as sarif_file:
-                 json.dump(sarif, sarif_file, indent=2)
+             with open("trufflehog_output.sarif", "w", encoding='utf-8') as sarif_file:
+                 json.dump(sarif, sarif_file, indent=2, ensure_ascii=False)
              print("✅ SARIF file created successfully!")
           except Exception as e:
             print(f"❌ Error converting to SARIF: {e}")
             exit(1)
           "@
              # Save the Python script to a file
-            Set-Content -Path convert_to_sarif.py -Value $content
+            Set-Content -Path convert_to_sarif.py -Value $content -Encoding UTF8
             python convert_to_sarif.py
 
 
