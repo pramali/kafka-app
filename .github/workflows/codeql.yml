@@ -1,83 +1,65 @@
 name: Secret Scanning with TruffleHog
-'on':
+
+on:
   push:
     branches:
       - master
   pull_request:
     branches:
       - master
-permissions:
-  contents: read
-  security-events: write
+permissions:  
+   contents: read  
+   security-events: write  # ✅ Grant permission to upload SARIF  
+
 jobs:
   scan-secrets:
     name: Scan for Secrets on Windows
-    runs-on: windows-latest
+    runs-on: windows-latest  # Windows runner
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
       - name: Install Python and TruffleHog
-        run: >
+        run: |
           # Install Python directly from the official website
-
-          Invoke-WebRequest -Uri
-          https://www.python.org/ftp/python/3.8.8/python-3.8.8-amd64.exe
-          -OutFile python-installer.exe
-
-          Start-Process -FilePath python-installer.exe -ArgumentList "/quiet
-          InstallAllUsers=1 PrependPath=1" -Wait
-
+          Invoke-WebRequest -Uri https://www.python.org/ftp/python/3.8.8/python-3.8.8-amd64.exe -OutFile python-installer.exe
+          Start-Process -FilePath python-installer.exe -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1" -Wait
           python --version
 
-
           # Install TruffleHog
-
           #pip install truffleHog3
-
           #pip install truffleHog3 --verbose
-
           pip install  --upgrade truffleHog3
+
       - name: Run TruffleHog Scan for Secrets
-        run: >
+        run: |
           # Run TruffleHog and output the results in SARIF format
-
-          trufflehog3  ./ --output trufflehog_output.json || Write-Host "Secrets
-          detected, but continuing workflow."
-
-          #trufflehog3 filesystem . --output trufflehog_output.json ||
-          Write-Host "Secrets detected, but continuing workflow."
-
+          trufflehog3  ./ --output trufflehog_output.json || Write-Host "Secrets detected, but continuing workflow."
+          #trufflehog3 filesystem . --output trufflehog_output.json || Write-Host "Secrets detected, but continuing workflow."
           exit 0
-      - name: Debug TruffleHog Output
-        run: "echo \"\U0001F50D Checking if TruffleHog found secrets...\"\nGet-Content trufflehog_output.json\n"
-      - name: Check for TruffleHog JSON File
-        run: >
-          # Ensure the SARIF file is generated
 
+      - name: Debug TruffleHog Output
+        run: |
+          echo "🔍 Checking if TruffleHog found secrets..."
+          Get-Content trufflehog_output.json
+
+      - name: Check for TruffleHog JSON File
+        run: |
+          # Ensure the SARIF file is generated
           if (Test-Path "trufflehog_output.json") {
             echo "✅ JSON report generated successfully."
           } else {
             echo "❌ JSON report NOT found!"
             exit 1
           }
-
           # Convert JSON to SARIF (if necessary)
-
-          #python -c "import sys, json; print(json.dumps({'version': '2.1.0',
-          'runs': [{'tool': {'driver': {'name': 'TruffleHog'}}, 'results':
-          []}]}))" > trufflehog_output.sarif
-
-
+          #python -c "import sys, json; print(json.dumps({'version': '2.1.0', 'runs': [{'tool': {'driver': {'name': 'TruffleHog'}}, 'results': []}]}))" > trufflehog_output.sarif
+          
           #python -c "import sys, json;
-
           #data = json.load(open('trufflehog_output.json'));
+          #sarif = {'version': '2.1.0','runs': [{'tool': {'driver': {'name': 'TruffleHog'}},'results': [{'message': {'text': f'Secret found in {item["path"]}'}, 'locations': [{'physicalLocation': {'artifactLocation': {'uri': item["path"]}}}]} for item in data]}]};print(json.dumps(sarif, indent=2));" > trufflehog_output.sarif
 
-          #sarif = {'version': '2.1.0','runs': [{'tool': {'driver': {'name':
-          'TruffleHog'}},'results': [{'message': {'text': f'Secret found in
-          {item["path"]}'}, 'locations': [{'physicalLocation':
-          {'artifactLocation': {'uri': item["path"]}}}]} for item in
-          data]}]};print(json.dumps(sarif, indent=2));" >
-          trufflehog_output.sarif
       - name: Convert TruffleHog JSON to SARIF
         run: |
           # Create a temporary Python script
@@ -86,7 +68,7 @@ jobs:
           import json
           try:
              with open("trufflehog_output.json", "r") as file:
-             data = json.load(file)
+                  data = json.load(file)
              if not isinstance(data, list):
                   raise ValueError("Unexpected TruffleHog JSON format")
           sarif = {
@@ -125,11 +107,16 @@ jobs:
             echo "❌ SARIF report NOT found!"
             exit 1
           }
+
       - name: Upload SARIF file to GitHub Code Scanning Alerts
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trufflehog_output.sarif
-          token: '${{ secrets.GITHUB_TOKEN }}'
+          token: ${{ secrets.GITHUB_TOKEN }}
           wait-for-processing: true
+          
       - name: Debug SARIF File
-        run: "echo \"\U0001F50D Checking SARIF file before upload...\"\nGet-Content trufflehog_output.sarif\n"
+        run: |
+          echo "🔍 Checking SARIF file before upload..."
+          Get-Content trufflehog_output.sarif
+
