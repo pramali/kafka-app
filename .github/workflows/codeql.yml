@@ -69,7 +69,8 @@ jobs:
           try:
              with open("trufflehog_output.json", "r") as file:
              data = json.load(file)
-             if not isinstance(data, list):raise ValueError("Unexpected TruffleHog JSON format")
+             if not isinstance(data, list):
+                  raise ValueError("Unexpected TruffleHog JSON format")
           sarif = {
            "version": "2.1.0",
            "runs": [{
