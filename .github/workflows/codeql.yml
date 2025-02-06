@@ -54,7 +54,10 @@ jobs:
             exit 1
           }
           # Convert JSON to SARIF (if necessary)
-          python -c "import sys, json; print(json.dumps({'version': '2.1.0', 'runs': [{'tool': {'driver': {'name': 'TruffleHog'}}, 'results': []}]}))" > trufflehog_output.sarif
+          #python -c "import sys, json; print(json.dumps({'version': '2.1.0', 'runs': [{'tool': {'driver': {'name': 'TruffleHog'}}, 'results': []}]}))" > trufflehog_output.sarif
+          python -c "import sys, json;
+          data = json.load(open('trufflehog_output.json'));
+          sarif = {'version': '2.1.0','runs': [{'tool': {'driver': {'name': 'TruffleHog'}},'results': [{'message': {'text': f'Secret found in {item["path"]}'}, 'locations': [{'physicalLocation': {'artifactLocation': {'uri': item["path"]}}}]} for item in data]}]};print(json.dumps(sarif, indent=2));" > trufflehog_output.sarif
 
           # Verify if the SARIF file exists
           if (Test-Path "trufflehog_output.sarif") {
@@ -71,3 +74,9 @@ jobs:
           sarif_file: trufflehog_output.sarif
           token: ${{ secrets.GITHUB_TOKEN }}
           wait-for-processing: true
+          
+      - name: Debug SARIF File
+        run: |
+          echo "🔍 Checking SARIF file before upload..."
+          Get-Content trufflehog_output.sarif
+
