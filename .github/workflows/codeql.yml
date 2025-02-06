@@ -31,7 +31,7 @@ jobs:
           #pip install truffleHog3 --verbose
           pip install  --upgrade truffleHog3
 
-       - name: Run TruffleHog and Generate SARIF
+      - name: Run TruffleHog and Generate SARIF
         shell: pwsh
         run: |
           # Run TruffleHog using Python (avoid missing PATH issue)
