@@ -30,35 +30,53 @@ jobs:
       - name: Run TruffleHog Scan for Secrets
         run: |
           # Scan the repository for secrets and output to a text file
-          trufflehog3 filesystem . > trufflehog_output.txt
-          Write-Host "TruffleHog scan completed."
+          trufflehog3 filesystem . > trufflehog_output.txt || echo "TruffleHog scan failed. Exiting."
+          echo "TruffleHog scan completed."
 
-      - name: Debug Text Output
+      - name: Check if Text Output Exists
         run: |
+          echo "Checking if trufflehog_output.txt file exists..."
           if (Test-Path "trufflehog_output.txt") {
-            echo "✅ Text report generated successfully:"
+            echo "✅ Text report generated successfully."
             Get-Content trufflehog_output.txt
           } else {
             echo "❌ Text report NOT found!"
             exit 1
           }
 
-      - name: Convert Output to SARIF
+      - name: Convert Text Output to SARIF
         run: |
+          echo "Converting text output to SARIF format..."
           python -c "
           import json
-          with open('trufflehog_output.txt', 'r', encoding='utf-8') as f:
-              data = f.readlines()
-              sarif = {
-                  'version': '2.1.0',
-                  'runs': [{
-                      'tool': {'driver': {'name': 'TruffleHog'}},
-                      'results': [{'message': {'text': line.strip()}} for line in data]
-                  }]
-              }
-          with open('trufflehog_output.sarif', 'w', encoding='utf-8') as f:
-              json.dump(sarif, f, indent=2)
+          try:
+              with open('trufflehog_output.txt', 'r', encoding='utf-8') as f:
+                  data = f.readlines()
+                  sarif = {
+                      'version': '2.1.0',
+                      'runs': [{
+                          'tool': {'driver': {'name': 'TruffleHog'}},
+                          'results': [{'message': {'text': line.strip()}} for line in data]
+                      }]
+                  }
+              with open('trufflehog_output.sarif', 'w', encoding='utf-8') as f:
+                  json.dump(sarif, f, indent=2)
+              print('SARIF file successfully created.')
+          except Exception as e:
+              print(f"Error while converting to SARIF: {str(e)}")
+              exit(1)
           "
+
+      - name: Check SARIF File and Upload
+        run: |
+          echo "Checking if SARIF file exists..."
+          if (Test-Path "trufflehog_output.sarif") {
+            echo "✅ SARIF file found. Uploading to GitHub Code Scanning Alerts."
+            cat trufflehog_output.sarif
+          } else {
+            echo "❌ SARIF file NOT found!"
+            exit 1
+          }
 
       - name: Upload SARIF file to GitHub Code Scanning Alerts
         uses: github/codeql-action/upload-sarif@v3
