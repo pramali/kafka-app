@@ -19,7 +19,7 @@ jobs:
 
       - name: Install Python and TruffleHog
         run: |
-          # Install Python directly from the official website
+          # Install Python
           Invoke-WebRequest -Uri https://www.python.org/ftp/python/3.8.8/python-3.8.8-amd64.exe -OutFile python-installer.exe
           Start-Process -FilePath python-installer.exe -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1" -Wait
           python --version
@@ -27,17 +27,27 @@ jobs:
           # Install TruffleHog
           pip install --upgrade truffleHog3
 
-      - name: Run TruffleHog Scan for Secrets and save output
+      - name: Run TruffleHog and Save Output (Ignore Exit Code)
         shell: pwsh
         run: |
-          # Run TruffleHog and save the output in a text file
-          trufflehog3 filesystem . > trufflehog_output.txt || echo "Ignoring exit code"
+          trufflehog3 filesystem . > trufflehog_output.txt
           echo "TruffleHog scan completed."
+        continue-on-error: true  # ✅ This prevents GitHub Actions from failing due to exit code 1
+
+      - name: Debug TruffleHog Output
+        shell: pwsh
+        run: |
+          if (Test-Path "trufflehog_output.txt") {
+            echo "✅ TruffleHog output generated successfully:"
+            Get-Content trufflehog_output.txt
+          } else {
+            echo "❌ TruffleHog output NOT found!"
+            exit 1
+          }
 
       - name: Convert TruffleHog Output to SARIF
         shell: pwsh
         run: |
-          # Convert output to SARIF using a Python script
           python -c "
           import json
           sarif = {
@@ -59,7 +69,7 @@ jobs:
         shell: pwsh
         run: |
           if (Test-Path "trufflehog_output.sarif") {
-            echo "SARIF report generated successfully:"
+            echo "✅ SARIF report generated successfully:"
             Get-Content trufflehog_output.sarif
           } else {
             echo "❌ SARIF report NOT found!"
