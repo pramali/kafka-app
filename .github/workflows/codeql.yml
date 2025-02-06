@@ -8,6 +8,11 @@ on:
     branches:
       - master
 
+permissions:  # ✅ Ensure correct permissions for uploading SARIF
+  security-events: write  # Allows SARIF upload
+  actions: read
+  contents: read
+
 jobs:
   scan-secrets:
     name: Scan for Secrets on Windows
@@ -27,23 +32,12 @@ jobs:
           # Install TruffleHog
           pip install --upgrade truffleHog3
 
-      - name: Run TruffleHog and Save Output (Ignore Exit Code)
+      - name: Run TruffleHog Scan
         shell: pwsh
         run: |
           trufflehog3 filesystem . > trufflehog_output.txt
           echo "TruffleHog scan completed."
-        continue-on-error: true  # ✅ This prevents GitHub Actions from failing due to exit code 1
-
-      - name: Debug TruffleHog Output
-        shell: pwsh
-        run: |
-          if (Test-Path "trufflehog_output.txt") {
-            echo "✅ TruffleHog output generated successfully:"
-            Get-Content trufflehog_output.txt
-          } else {
-            echo "❌ TruffleHog output NOT found!"
-            exit 1
-          }
+        continue-on-error: true
 
       - name: Convert TruffleHog Output to SARIF
         shell: pwsh
@@ -65,7 +59,7 @@ jobs:
           "
           echo "SARIF report generated successfully."
 
-      - name: Check for TruffleHog SARIF File
+      - name: Debug TruffleHog SARIF Output
         shell: pwsh
         run: |
           if (Test-Path "trufflehog_output.sarif") {
