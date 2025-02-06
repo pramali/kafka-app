@@ -31,7 +31,7 @@ jobs:
         shell: pwsh
         run: |
           # Run TruffleHog and save the output in a text file
-          trufflehog3 filesystem . > trufflehog_output.txt
+          trufflehog3 filesystem . > trufflehog_output.txt || echo "Ignoring exit code"
           echo "TruffleHog scan completed."
 
       - name: Convert TruffleHog Output to SARIF
