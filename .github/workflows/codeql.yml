@@ -71,11 +71,11 @@ jobs:
                   data = json.load(file)
              if not isinstance(data, list):
                   raise ValueError("Unexpected TruffleHog JSON format")
-          sarif = {
-             "version": "2.1.0",
-             "runs": [{
-             "tool": {"driver": {"name": "TruffleHog"}},
-             "results": [
+             sarif = {
+               "version": "2.1.0",
+              "runs": [{
+              "tool": {"driver": {"name": "TruffleHog"}},
+              "results": [
                 {
                     "message": {"text": f"Secret found in {item.get('path', 'unknown file')}"},
                     "locations": [{
