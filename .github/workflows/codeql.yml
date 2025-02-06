@@ -38,7 +38,7 @@ jobs:
       - name: Check for TruffleHog SARIF File
         run: |
           # Ensure the SARIF file is generated
-          if (Test-Path "trufflehog_output.sarif") {
+          if (Test-Path "trufflehog_output.json") {
             echo "✅ SARIF report generated successfully."
           } else {
             echo "❌ SARIF report NOT found!"
