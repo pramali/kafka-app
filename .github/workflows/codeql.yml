@@ -37,19 +37,20 @@ jobs:
          
 
       - name: Check for Trufflehog SARIF File
+        shell: bash
         run: |
-         if [ -f "trufflehog_output.sarif" ]; then
-            echo "SARIF report generated successfully:"
-            cat trufflehog_output.sarif
-         else
-            echo "❌ SARIF report NOT found!"
-            exit 1
-            fi
+          if [ -f "trufflehog_output.sarif" ]; then
+              echo "SARIF report generated successfully:"
+              cat trufflehog_output.sarif
+          else
+             echo "❌ SARIF report NOT found!"
+             exit 1
+          fi
  
       - name: Upload SARIF file to GitHub Code Scanning Alerts
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: trufflehog_output.sarif
-          token: ${{ secrets.GITHUB_TOKEN }}
-          wait-for-processing: true
+           sarif_file: trufflehog_output.sarif
+           token: ${{ secrets.GITHUB_TOKEN }}
+           wait-for-processing: true
      
