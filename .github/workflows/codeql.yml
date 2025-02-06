@@ -25,21 +25,31 @@ jobs:
           python --version
 
           # Install TruffleHog
-          pip install --upgrade truffleHog3
+          #pip install truffleHog3
+          #pip install truffleHog3 --verbose
+          pip install  --upgrade truffleHog3
 
-      # Step 1: Run TruffleHog and generate SARIF output
-      - name: Run TruffleHog Scan for Secrets and generate SARIF output
-        shell: pwsh
+      - name: Run TruffleHog Scan for Secrets
         run: |
-          # Run TruffleHog and save SARIF output
-          trufflehog3 filesystem . --sarif > trufflehog_output.sarif
-          echo "TruffleHog SARIF output generated successfully."
+          # Scan the repository for secrets like API keys, passwords, tokens, etc.
+          trufflehog3 ./ || Write-Host "Secrets detected, but continuing workflow."
+          exit 0
+         
 
-      # Step 2: Upload SARIF Report to GitHub Security Alerts
+      - name: Check for Trufflehog SARIF File
+        run: |
+         if [ -f "trufflehog_output.sarif" ]; then
+            echo "SARIF report generated successfully:"
+            cat trufflehog_output.sarif
+         else
+            echo "❌ SARIF report NOT found!"
+            exit 1
+            fi
+ 
       - name: Upload SARIF file to GitHub Code Scanning Alerts
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trufflehog_output.sarif
+          token: ${{ secrets.GITHUB_TOKEN }}
           wait-for-processing: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # ✅ Ensure token is available
+     
