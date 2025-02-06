@@ -29,8 +29,28 @@ jobs:
 
       - name: Run TruffleHog Scan for Secrets
         run: |
-          # Run TruffleHog scan using git and output the result in SARIF format
-          trufflehog3 git . --output trufflehog_output.sarif --format sarif
+          # Run TruffleHog scan and generate a JSON file first
+          trufflehog3 git . --output trufflehog_output.json --json
+
+      - name: Check JSON File and Convert to SARIF
+        run: |
+          # Convert JSON to SARIF format (if needed)
+          if (Test-Path "trufflehog_output.json") {
+            echo "✅ JSON file found. Converting to SARIF..."
+            # Python script to convert JSON to SARIF
+            python -c "
+import json
+import sys
+import sarif_serialize
+with open('trufflehog_output.json') as f:
+    data = json.load(f)
+with open('trufflehog_output.sarif', 'w') as out:
+    json.dump(data, out, indent=4)
+"
+          } else {
+            echo "❌ JSON file NOT found!"
+            exit 1
+          }
 
       - name: Check SARIF File and Upload
         run: |
