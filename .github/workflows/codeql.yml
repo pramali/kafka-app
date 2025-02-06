@@ -31,11 +31,11 @@ jobs:
           #pip install truffleHog3 --verbose
           pip install  --upgrade truffleHog3
 
-      - name: Run TruffleHog and Generate SARIF
+       - name: Run TruffleHog and Generate SARIF
         shell: pwsh
         run: |
-          # Run TruffleHog and output results in JSON
-          trufflehog filesystem . --json | Out-File -Encoding utf8 trufflehog_output.json
+          # Run TruffleHog using Python (avoid missing PATH issue)
+          python -m trufflehog filesystem . --json | Out-File -Encoding utf8 trufflehog_output.json
           
           # Convert JSON to SARIF
           python -c "
@@ -52,6 +52,7 @@ jobs:
           }
           json.dump(sarif, open('trufflehog_output.sarif', 'w', encoding='utf-8'))
           "
+
 
       - name: Upload SARIF report
         uses: github/codeql-action/upload-sarif@v3
