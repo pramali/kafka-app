@@ -71,11 +71,12 @@ jobs:
                   data = json.load(file)
              if not isinstance(data, list):
                   raise ValueError("Unexpected TruffleHog JSON format")
-          sarif = {
-           "version": "2.1.0",
-           "runs": [{
-            "tool": {"driver": {"name": "TruffleHog"}},
-            "results": [
+          sarif = 
+          {
+             "version": "2.1.0",
+             "runs": [{
+             "tool": {"driver": {"name": "TruffleHog"}},
+             "results": [
                 {
                     "message": {"text": f"Secret found in {item.get('path', 'unknown file')}"},
                     "locations": [{
@@ -84,8 +85,10 @@ jobs:
                         }
                     }]
                 }
-                for item in data if "path" in item
-            ]}]}
+                      for item in data if "path" in item
+                     ]
+            }]
+          }
               with open("trufflehog_output.sarif", "w") as sarif_file:
               json.dump(sarif, sarif_file, indent=2)
               print("✅ SARIF file created successfully!")
