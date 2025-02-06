@@ -27,10 +27,10 @@ jobs:
           # Install TruffleHog
           pip install --upgrade truffleHog3
 
-      - name: Run TruffleHog Scan for Secrets
+      - name: Run TruffleHog Scan for Secrets (Verbose)
         run: |
-          # Scan the repository for secrets and output to a text file
-          trufflehog3 filesystem . > trufflehog_output.txt || echo "TruffleHog scan failed. Exiting."
+          # Run TruffleHog with verbose output to help diagnose any issues
+          trufflehog3 filesystem . --verbose > trufflehog_output.txt || echo "TruffleHog scan failed. Exiting."
           echo "TruffleHog scan completed."
 
       - name: Check if Text Output Exists
