@@ -69,8 +69,6 @@ jobs:
           try:
              with open("trufflehog_output.json", "r", encoding='utf-8') as file:
                   data = json.load(file)
-             print('🔍 Loaded JSON data:')
-             print(json.dumps(data, indent=2, ensure_ascii=False))
              if not isinstance(data, list):
                   raise ValueError("Unexpected TruffleHog JSON format")
              sarif = {
