@@ -29,31 +29,31 @@ jobs:
 
       - name: Run TruffleHog Scan for Secrets
         run: |
-          # Scan the repository for secrets like API keys, passwords, tokens, etc., and output to SARIF
-          trufflehog3 filesystem . --json > trufflehog_output.json
+          # Scan the repository for secrets and output to a text file
+          trufflehog3 filesystem . > trufflehog_output.txt
           Write-Host "TruffleHog scan completed."
 
-      - name: Debug JSON Output
+      - name: Debug Text Output
         run: |
-          if (Test-Path "trufflehog_output.json") {
-            echo "✅ JSON report generated successfully:"
-            Get-Content trufflehog_output.json
+          if (Test-Path "trufflehog_output.txt") {
+            echo "✅ Text report generated successfully:"
+            Get-Content trufflehog_output.txt
           } else {
-            echo "❌ JSON report NOT found!"
+            echo "❌ Text report NOT found!"
             exit 1
           }
 
-      - name: Convert JSON to SARIF
+      - name: Convert Output to SARIF
         run: |
           python -c "
           import json
-          with open('trufflehog_output.json', 'r', encoding='utf-8') as f:
-              data = json.load(f)
+          with open('trufflehog_output.txt', 'r', encoding='utf-8') as f:
+              data = f.readlines()
               sarif = {
                   'version': '2.1.0',
                   'runs': [{
                       'tool': {'driver': {'name': 'TruffleHog'}},
-                      'results': [{'message': {'text': f'Potential secret: {item["string"]}'}} for item in data]
+                      'results': [{'message': {'text': line.strip()}} for line in data]
                   }]
               }
           with open('trufflehog_output.sarif', 'w', encoding='utf-8') as f:
