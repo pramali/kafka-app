@@ -1,4 +1,4 @@
-name: Secret Scanning with TruffleHog
+name: Gitleaks Secret Scanning
 
 on:
   push:
@@ -10,36 +10,44 @@ on:
 
 jobs:
   scan-secrets:
-    name: Scan for Secrets on Windows
-    runs-on: windows-latest  # Windows runner
+    name: Scan for Secrets with Gitleaks
+    runs-on: windows-latest
+
+    permissions:
+      contents: read
+      security-events: write  # ✅ This allows SARIF upload to security alerts
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install Python and TruffleHog
+      - name: Install Gitleaks using Chocolatey
         run: |
-          # Install Python directly from the official website
-          Invoke-WebRequest -Uri https://www.python.org/ftp/python/3.8.8/python-3.8.8-amd64.exe -OutFile python-installer.exe
-          Start-Process -FilePath python-installer.exe -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1" -Wait
-          python --version
+          Set-ExecutionPolicy Bypass -Scope Process -Force
+          [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+          Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+          choco install gitleaks -y --no-progress
 
-          # Install TruffleHog
-          #pip install truffleHog3
-          #pip install truffleHog3 --verbose
-          pip install  --upgrade truffleHog3
+      - name: Verify Gitleaks Installation
+        run: gitleaks version
 
-      - name: Run TruffleHog Scan for Secrets
+      - name: Run Gitleaks Secret Scan
         run: |
-          # Scan the repository for secrets like API keys, passwords, tokens, etc.
-          trufflehog3 ./ || Write-Host "Secrets detected, but continuing workflow."
-          exit 0
-         
+          gitleaks detect --source . --report-format=sarif --report-path=gitleaks.sarif; if ($?) { echo "No secrets found." } else { echo "Gitleaks scan completed with issues, but workflow continues."; exit 0 }
 
-      - name: Upload SARIF file to GitHub Code Scanning Alerts
+      - name: Debug SARIF Report
+        run: |
+          if (Test-Path "gitleaks.sarif") {
+            echo "SARIF report generated successfully:"
+            Get-Content gitleaks.sarif
+          } else {
+            echo "❌ SARIF report NOT found!"
+            exit 1
+          }
+
+      - name: Upload SARIF Report to GitHub Security Alerts
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: trufflehog_output.sarif
-          token: ${{ secrets.GITHUB_TOKEN }}
-          wait-for-processing: true
-     
+          sarif_file: gitleaks.sarif
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # ✅ Ensure token is available
