@@ -27,10 +27,10 @@ jobs:
           # Install TruffleHog
           pip install --upgrade truffleHog3
 
-      - name: Run TruffleHog Scan for Secrets (Git)
+      - name: Run TruffleHog Scan for Secrets
         run: |
-          # Run TruffleHog on the Git repository
-          trufflehog3 git --json --output trufflehog_output.sarif .
+          # Run TruffleHog scan using git and output the result in SARIF format
+          trufflehog3 git --report-format sarif --report-path trufflehog_output.sarif .
 
       - name: Check SARIF File and Upload
         run: |
