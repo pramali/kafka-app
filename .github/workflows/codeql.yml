@@ -25,44 +25,30 @@ jobs:
           python --version
 
           # Install TruffleHog
-          #pip install truffleHog3
-          #pip install truffleHog3 --verbose
-          pip install  --upgrade truffleHog3
+          pip install --upgrade truffleHog3
 
-      - name: Run TruffleHog Scan for Secrets
+      - name: Run TruffleHog Scan for Secrets and generate SARIF output
+        shell: pwsh
         run: |
-          # Scan the repository for secrets like API keys, passwords, tokens, etc.
-          trufflehog3 ./ || Write-Host "Secrets detected, but continuing workflow."
-          exit 0
-         
+          # Scan the repository and output results in SARIF format
+          trufflehog3 filesystem . --sarif > trufflehog_output.sarif
+          echo "TruffleHog SARIF output generated successfully."
+
+      - name: Check for TruffleHog SARIF File
+        shell: pwsh
+        run: |
+          if (Test-Path "trufflehog_output.sarif") {
+            echo "SARIF report generated successfully:"
+            Get-Content trufflehog_output.sarif
+          } else {
+            echo "❌ SARIF report NOT found!"
+            exit 1
+          }
 
       - name: Upload SARIF file to GitHub Code Scanning Alerts
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trufflehog_output.sarif
-          token: ${{ secrets.GITHUB_TOKEN }}
           wait-for-processing: true
-		  
-	
- 
-    - name: Run Trufflehog
-      run: |
-        trufflehog --json --output trufflehog_output.sarif .
- 
-    - name: Check for Trufflehog SARIF File
-      shell: bash
-      run: |
-        if [ -f "trufflehog_output.sarif" ]; then
-          echo "SARIF report generated successfully:"
-          cat trufflehog_output.sarif
-        else
-          echo "❌ SARIF report NOT found!"
-          exit 1
-        fi
- 
-    - name: Upload SARIF file to GitHub Code Scanning Alerts
-      uses: github/codeql-action/upload-sarif@v3
-      with:
-        sarif_file: trufflehog_output.sarif
-        token: ${{ secrets.GITHUB_TOKEN }}
-        wait-for-processing: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # ✅ Ensure token is available
