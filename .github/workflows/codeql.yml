@@ -30,7 +30,7 @@ jobs:
       - name: Run TruffleHog Scan for Secrets
         run: |
           # Scan the repository for secrets like API keys, passwords, tokens, etc.
-          trufflehog3 --json . > trufflehog_output.sarif
+          trufflehog3 --report-format sarif --report-path trufflehog_output.sarif .
           if ($?) { Write-Host "TruffleHog scan completed successfully." }
           else { Write-Host "TruffleHog scan failed." }
 
