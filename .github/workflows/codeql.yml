@@ -39,6 +39,11 @@ jobs:
           #trufflehog3 filesystem . --output trufflehog_output.json || Write-Host "Secrets detected, but continuing workflow."
           exit 0
 
+      - name: Debug TruffleHog Output
+        run: |
+          echo "🔍 Checking if TruffleHog found secrets..."
+          Get-Content trufflehog_output.json
+
       - name: Check for TruffleHog JSON File
         run: |
           # Ensure the SARIF file is generated
