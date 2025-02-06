@@ -27,45 +27,10 @@ jobs:
           # Install TruffleHog
           pip install --upgrade truffleHog3
 
-      - name: Run TruffleHog Scan for Secrets (Verbose)
+      - name: Run TruffleHog Scan for Secrets (Git)
         run: |
-          # Run TruffleHog with verbose output to help diagnose any issues
-          trufflehog3 filesystem . --verbose > trufflehog_output.txt || echo "TruffleHog scan failed. Exiting."
-          echo "TruffleHog scan completed."
-
-      - name: Check if Text Output Exists
-        run: |
-          echo "Checking if trufflehog_output.txt file exists..."
-          if (Test-Path "trufflehog_output.txt") {
-            echo "✅ Text report generated successfully."
-            Get-Content trufflehog_output.txt
-          } else {
-            echo "❌ Text report NOT found!"
-            exit 1
-          }
-
-      - name: Convert Text Output to SARIF
-        run: |
-          echo "Converting text output to SARIF format..."
-          python -c "
-          import json
-          try:
-              with open('trufflehog_output.txt', 'r', encoding='utf-8') as f:
-                  data = f.readlines()
-                  sarif = {
-                      'version': '2.1.0',
-                      'runs': [{
-                          'tool': {'driver': {'name': 'TruffleHog'}},
-                          'results': [{'message': {'text': line.strip()}} for line in data]
-                      }]
-                  }
-              with open('trufflehog_output.sarif', 'w', encoding='utf-8') as f:
-                  json.dump(sarif, f, indent=2)
-              print('SARIF file successfully created.')
-          except Exception as e:
-              print(f"Error while converting to SARIF: {str(e)}")
-              exit(1)
-          "
+          # Run TruffleHog on the Git repository
+          trufflehog3 git --json --output trufflehog_output.sarif .
 
       - name: Check SARIF File and Upload
         run: |
