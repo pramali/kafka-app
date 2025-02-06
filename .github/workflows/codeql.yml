@@ -30,7 +30,7 @@ jobs:
       - name: Run TruffleHog Scan for Secrets
         run: |
           # Run TruffleHog scan using git and output the result in SARIF format
-          trufflehog3 git --report-format sarif --report-path trufflehog_output.sarif .
+          trufflehog3 git . --output trufflehog_output.sarif --format sarif
 
       - name: Check SARIF File and Upload
         run: |
