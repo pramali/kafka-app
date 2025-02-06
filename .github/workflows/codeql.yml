@@ -69,6 +69,8 @@ jobs:
           try:
              with open("trufflehog_output.json", "r", encoding='utf-8') as file:
                   data = json.load(file)
+             print('🔍 Loaded JSON data:')
+              print(json.dumps(data, indent=2, ensure_ascii=False))
              if not isinstance(data, list):
                   raise ValueError("Unexpected TruffleHog JSON format")
              sarif = {
@@ -88,6 +90,7 @@ jobs:
                      ]
             }]
           }
+             print(f'Generated SARIF: {sarif}')
              with open("trufflehog_output.sarif", "w", encoding='utf-8') as sarif_file:
                  json.dump(sarif, sarif_file, indent=2, ensure_ascii=False)
              print("✅ SARIF file created successfully!")
@@ -99,6 +102,7 @@ jobs:
             Set-Content -Path convert_to_sarif.py -Value $content -Encoding UTF8
              # Run the Python script with UTF-8 encoding and redirect output to a file to avoid terminal issues
             python convert_to_sarif.py > output.log 2>&1
+            cat output.log
 
              # Check if SARIF file exists and output the result to the log
             if (Test-Path "trufflehog_output.sarif") {
