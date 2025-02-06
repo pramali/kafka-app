@@ -8,15 +8,10 @@ on:
     branches:
       - master
 
-permissions:  # ✅ Ensure correct permissions for uploading SARIF
-  security-events: write  # Allows SARIF upload
-  actions: read
-  contents: read
-
 jobs:
   scan-secrets:
     name: Scan for Secrets on Windows
-    runs-on: windows-latest  # Windows runner
+    runs-on: windows-latest
 
     steps:
       - name: Checkout Code
@@ -24,60 +19,66 @@ jobs:
 
       - name: Install Python and TruffleHog
         run: |
-          # Install Python
           Invoke-WebRequest -Uri https://www.python.org/ftp/python/3.8.8/python-3.8.8-amd64.exe -OutFile python-installer.exe
           Start-Process -FilePath python-installer.exe -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1" -Wait
           python --version
-
-          # Install TruffleHog
           pip install --upgrade truffleHog3
 
-      - name: Run TruffleHog Scan
-        shell: pwsh
+      - name: Run TruffleHog Scan and Save Output
         run: |
-          trufflehog3 filesystem . > trufflehog_output.txt
-          echo "TruffleHog scan completed."
+          trufflehog3 filesystem . --json > trufflehog_output.json || echo "Ignoring errors to continue workflow"
         continue-on-error: true
 
-      - name: Convert TruffleHog Output to SARIF
+      - name: Debug TruffleHog Output
+        run: |
+          if (Test-Path "trufflehog_output.json") {
+            echo "✅ TruffleHog output file found:"
+            Get-Content trufflehog_output.json
+          } else {
+            echo "❌ TruffleHog output file NOT found!"
+            exit 1
+          }
         shell: pwsh
+
+      - name: Convert JSON Output to SARIF
         run: |
           python -c "
           import json
-          import re
-
           findings = []
-          with open('trufflehog_output.txt', encoding='utf-8') as file:
-              for line in file:
-                  match = re.search(r'(?P<file>[\w\/\.-]+):(?P<line>\d+): (?P<message>.+)', line)
-                  if match:
+          try:
+              with open('trufflehog_output.json', encoding='utf-8') as file:
+                  results = json.load(file)
+                  for result in results:
                       findings.append({
-                          'message': {'text': match.group('message')},
+                          'message': {'text': result.get('Message', 'Potential secret found')},
                           'locations': [{
                               'physicalLocation': {
-                                  'artifactLocation': {'uri': match.group('file')},
-                                  'region': {'startLine': int(match.group('line'))}
+                                  'artifactLocation': {'uri': result.get('Path', 'unknown')},
+                                  'region': {'startLine': result.get('Line', 1)}
                               }
                           }]
                       })
 
-          sarif = {
-              'version': '2.1.0',
-              'runs': [{
-                  'tool': {'driver': {'name': 'TruffleHog'}},
-                  'results': findings
-              }]
-          }
+              sarif = {
+                  'version': '2.1.0',
+                  'runs': [{
+                      'tool': {'driver': {'name': 'TruffleHog'}},
+                      'results': findings
+                  }]
+              }
 
-          with open('trufflehog_output.sarif', 'w', encoding='utf-8') as sarif_file:
-              json.dump(sarif, sarif_file)
+              with open('trufflehog_output.sarif', 'w', encoding='utf-8') as sarif_file:
+                  json.dump(sarif, sarif_file)
 
-          print('✅ SARIF report generated successfully.')
+              print('✅ SARIF file generated successfully.')
+
+          except Exception as e:
+              print(f'❌ Error processing SARIF: {str(e)}')
+              exit(1)
           "
-
+        shell: pwsh
 
       - name: Debug SARIF File
-        shell: pwsh
         run: |
           if (Test-Path "trufflehog_output.sarif") {
             echo "✅ SARIF report generated successfully:"
@@ -86,7 +87,7 @@ jobs:
             echo "❌ SARIF report NOT found!"
             exit 1
           }
-
+        shell: pwsh
 
       - name: Upload SARIF file to GitHub Code Scanning Alerts
         uses: github/codeql-action/upload-sarif@v3
@@ -94,4 +95,4 @@ jobs:
           sarif_file: trufflehog_output.sarif
           wait-for-processing: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # ✅ Ensure token is available
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
