@@ -51,8 +51,8 @@ jobs:
         run: |
           # Convert the JSON output to SARIF format
           python - <<EOF
-import json
-import sys
+          import json
+          import sys
 
 # Load TruffleHog JSON output
 try:
