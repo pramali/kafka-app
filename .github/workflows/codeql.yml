@@ -90,8 +90,7 @@ jobs:
            except Exception as e:
             print(f"❌ Error converting to SARIF: {e}")
             exit(1)
-            '@
-             python convert_to_sarif.py
+            '@python convert_to_sarif.py
 
 
 
