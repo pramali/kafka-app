@@ -55,9 +55,32 @@ jobs:
           }
           # Convert JSON to SARIF (if necessary)
           #python -c "import sys, json; print(json.dumps({'version': '2.1.0', 'runs': [{'tool': {'driver': {'name': 'TruffleHog'}}, 'results': []}]}))" > trufflehog_output.sarif
-          python -c "import sys, json;
-          data = json.load(open('trufflehog_output.json'));
-          sarif = {'version': '2.1.0','runs': [{'tool': {'driver': {'name': 'TruffleHog'}},'results': [{'message': {'text': f'Secret found in {item["path"]}'}, 'locations': [{'physicalLocation': {'artifactLocation': {'uri': item["path"]}}}]} for item in data]}]};print(json.dumps(sarif, indent=2));" > trufflehog_output.sarif
+          
+          #python -c "import sys, json;
+          #data = json.load(open('trufflehog_output.json'));
+          #sarif = {'version': '2.1.0','runs': [{'tool': {'driver': {'name': 'TruffleHog'}},'results': [{'message': {'text': f'Secret found in {item["path"]}'}, 'locations': [{'physicalLocation': {'artifactLocation': {'uri': item["path"]}}}]} for item in data]}]};print(json.dumps(sarif, indent=2));" > trufflehog_output.sarif
+
+      - name: Convert TruffleHog JSON to SARIF
+        run: |
+          python - <<EOF
+          import json with open("trufflehog_output.json", "r") as file:
+          data = json.load(file)
+          sarif = {
+               "version": "2.1.0",
+               "runs": [{
+               "tool": {"driver": {"name": "TruffleHog"}},
+              "results": [
+               {
+                "message": {"text": f"Secret found in {item['path']}"},
+                "locations": [{"physicalLocation": {"artifactLocation": {"uri": item["path"]}}}]
+               }
+               for item in data]}]}
+               # Save SARIF file
+               with open("trufflehog_output.sarif", "w") as sarif_file:
+               json.dump(sarif, sarif_file, indent=2)
+               print("✅ SARIF file created successfully!")
+               EOF
+
 
           # Verify if the SARIF file exists
           if (Test-Path "trufflehog_output.sarif") {
