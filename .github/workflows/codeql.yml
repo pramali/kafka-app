@@ -27,44 +27,15 @@ jobs:
           # Install TruffleHog
           pip install --upgrade truffleHog3
 
-      # Step 1: Run TruffleHog and generate the JSON output
-      - name: Run TruffleHog Scan for Secrets and generate JSON output
+      # Step 1: Run TruffleHog and generate SARIF output
+      - name: Run TruffleHog Scan for Secrets and generate SARIF output
         shell: pwsh
         run: |
-          # Run TruffleHog and save JSON output
-          trufflehog filesystem . --json | Out-File -Encoding utf8 trufflehog_output.json
-          echo "TruffleHog output generated successfully."
+          # Run TruffleHog and save SARIF output
+          trufflehog3 filesystem . --sarif > trufflehog_output.sarif
+          echo "TruffleHog SARIF output generated successfully."
 
-      # Step 2: Debug SARIF Report for TruffleHog
-      - name: Debug SARIF Report for TruffleHog
-        shell: pwsh
-        run: |
-          if (Test-Path "trufflehog_output.json") {
-            echo "JSON output generated successfully:"
-            Get-Content trufflehog_output.json
-          } else {
-            echo "❌ JSON output NOT found!"
-            exit 1
-          }
-
-          # Convert JSON to SARIF
-          python -c "
-          import json
-          sarif = {
-              'version': '2.1.0',
-              'runs': [{
-                  'tool': {'driver': {'name': 'TruffleHog'}},
-                  'results': [
-                      {'message': {'text': f'Potential secret: {issue}'}}
-                      for issue in json.load(open('trufflehog_output.json', encoding='utf-8'))
-                  ]
-              }]
-          }
-          json.dump(sarif, open('trufflehog_output.sarif', 'w', encoding='utf-8'))
-          "
-          echo "SARIF report generated successfully."
-
-      # Step 3: Upload SARIF Report to GitHub Security Alerts
+      # Step 2: Upload SARIF Report to GitHub Security Alerts
       - name: Upload SARIF file to GitHub Code Scanning Alerts
         uses: github/codeql-action/upload-sarif@v3
         with:
