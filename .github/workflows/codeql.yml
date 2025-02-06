@@ -25,17 +25,15 @@ jobs:
           python --version
 
           # Install TruffleHog
-          #pip install truffleHog3
-          #pip install truffleHog3 --verbose
-          pip install  --upgrade truffleHog3
+          pip install --upgrade truffleHog3
 
       - name: Run TruffleHog Scan for Secrets
         run: |
           # Scan the repository for secrets like API keys, passwords, tokens, etc.
-          trufflehog3 ./ --report-format=sarif --report-path=trufflehog_output.sarif.sarif; || Write-Host "Secrets detected, but continuing workflow."
+          trufflehog3 ./ --report-format=sarif --report-path=trufflehog_output.sarif; || Write-Host "Secrets detected, but continuing workflow."
           exit 0
         
-	  - name: Debug SARIF File
+      - name: Debug SARIF File
         run: |
           if (Test-Path "trufflehog_output.sarif") {
             echo "✅ SARIF report generated successfully:"
