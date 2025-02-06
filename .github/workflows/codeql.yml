@@ -55,7 +55,7 @@
 		  - name: Convert JSON to SARIF
 			run: |
 			  python -c "
-	import json
+	                  import json
 	 
 	# Load JSON data
 	with open('trufflehog_output.json') as f:
