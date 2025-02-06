@@ -36,24 +36,50 @@ jobs:
           exit 0
          
 
-      # Step 1: Debug SARIF Report for TruffleHog
-      - name: Debug SARIF Report
+      # Step 1: Run TruffleHog and generate the JSON output
+      - name: Run TruffleHog and generate JSON output
+        shell: pwsh
         run: |
-         if (Test-Path "trufflehog_output.sarif") {
-         echo "SARIF report generated successfully:"
-         Get-Content trufflehog_output.sarif
+          # Run TruffleHog and save JSON output
+          trufflehog filesystem . --json | Out-File -Encoding utf8 trufflehog_output.json
+          echo "TruffleHog output generated successfully."
+
+          # Step 2: Debug SARIF report
+      - name: Debug SARIF Report for TruffleHog
+        shell: pwsh
+        run: |
+         if (Test-Path "trufflehog_output.json") {
+         echo "JSON output generated successfully:"
+         Get-Content trufflehog_output.json
          } else {
-         echo "❌ SARIF report NOT found!"
+         echo "❌ JSON output NOT found!"
          exit 1
          }
 
- # Step 2: Upload SARIF Report to GitHub Security Alerts
-      - name: Upload SARIF file to GitHub Code Scanning Alerts
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-         sarif_file: trufflehog_output.sarif
-         wait-for-processing: true
-        env:
-         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # ✅ Ensure token is available
+         # Convert JSON to SARIF
+         python -c "
+         import json
+         sarif = {
+        'version': '2.1.0',
+        'runs': [{
+            'tool': {'driver': {'name': 'TruffleHog'}},
+            'results': [
+                {'message': {'text': f'Potential secret: {issue}'}}
+                for issue in json.load(open('trufflehog_output.json', encoding='utf-8'))
+            ]
+        }]
+    }
+    json.dump(sarif, open('trufflehog_output.sarif', 'w', encoding='utf-8'))
+    "
+    echo "SARIF report generated successfully."
+
+# Step 3: Upload SARIF report to GitHub Security Alerts
+- name: Upload SARIF file to GitHub Code Scanning Alerts
+  uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: trufflehog_output.sarif
+    wait-for-processing: true
+  env:
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # ✅ Ensure token is available
 
      
