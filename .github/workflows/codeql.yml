@@ -7,6 +7,9 @@ on:
   pull_request:
     branches:
       - master
+permissions:  
+   contents: read  
+   security-events: write  # ✅ Grant permission to upload SARIF  
 
 jobs:
   scan-secrets:
