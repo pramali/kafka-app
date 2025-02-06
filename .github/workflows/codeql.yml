@@ -27,15 +27,33 @@ jobs:
           # Install TruffleHog
           pip install --upgrade truffleHog3
 
-      - name: Run TruffleHog Scan for Secrets
+      - name: Run TruffleHog Scan for Secrets and save output
+        shell: pwsh
         run: |
-          # Scan the repository for secrets like API keys, passwords, tokens, etc.
-          trufflehog3 ./ || Write-Host "Secrets detected, but continuing workflow."
-          exit 0
+          # Run TruffleHog and save the output in a text file
+          trufflehog3 filesystem . > trufflehog_output.txt
+          echo "TruffleHog scan completed."
 
-      - name: Run Trufflehog
+      - name: Convert TruffleHog Output to SARIF
+        shell: pwsh
         run: |
-          trufflehog --json --output trufflehog_output.sarif .
+          # Convert output to SARIF using a Python script
+          python -c "
+          import json
+          sarif = {
+              'version': '2.1.0',
+              'runs': [{
+                  'tool': {'driver': {'name': 'TruffleHog'}},
+                  'results': [
+                      {'message': {'text': line.strip()}}
+                      for line in open('trufflehog_output.txt', encoding='utf-8')
+                      if line.strip()
+                  ]
+              }]
+          }
+          json.dump(sarif, open('trufflehog_output.sarif', 'w', encoding='utf-8'))
+          "
+          echo "SARIF report generated successfully."
 
       - name: Check for TruffleHog SARIF File
         shell: pwsh
