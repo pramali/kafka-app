@@ -71,8 +71,7 @@ jobs:
                   data = json.load(file)
              if not isinstance(data, list):
                   raise ValueError("Unexpected TruffleHog JSON format")
-          sarif = 
-          {
+          sarif = {
              "version": "2.1.0",
              "runs": [{
              "tool": {"driver": {"name": "TruffleHog"}},
