@@ -88,9 +88,9 @@ jobs:
                      ]
             }]
           }
-              with open("trufflehog_output.sarif", "w") as sarif_file:
-              json.dump(sarif, sarif_file, indent=2)
-              print("✅ SARIF file created successfully!")
+             with open("trufflehog_output.sarif", "w") as sarif_file:
+                 json.dump(sarif, sarif_file, indent=2)
+             print("✅ SARIF file created successfully!")
           except Exception as e:
             print(f"❌ Error converting to SARIF: {e}")
             exit(1)
