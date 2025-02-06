@@ -21,18 +21,15 @@ jobs:
       - name: Install Python and TruffleHog
         shell: pwsh
         run: |
-          # Install Python
+          # Install Python directly from the official website
           Invoke-WebRequest -Uri https://www.python.org/ftp/python/3.8.8/python-3.8.8-amd64.exe -OutFile python-installer.exe
           Start-Process -FilePath python-installer.exe -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1" -Wait
-          $env:Path += ";C:\Python38\Scripts\;C:\Python38\"
           python --version
 
-          # Upgrade pip and install TruffleHog
-          python -m pip install --upgrade pip
-          pip install --upgrade trufflehog
-          
-          # Verify installation
-          trufflehog --version
+          # Install TruffleHog
+          #pip install truffleHog3
+          #pip install truffleHog3 --verbose
+          pip install  --upgrade truffleHog3
 
       - name: Run TruffleHog and Generate SARIF
         shell: pwsh
