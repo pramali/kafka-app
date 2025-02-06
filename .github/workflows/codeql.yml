@@ -63,7 +63,7 @@ jobs:
       - name: Convert TruffleHog JSON to SARIF
         run: |
           # Create a temporary Python script
-          Set-Content -Path convert_to_sarif.py -Value @'
+          Set-Content -Path convert_to_sarif.py -Value @"
           import json
           try:
              with open("trufflehog_output.json", "r") as file:
@@ -90,7 +90,8 @@ jobs:
            except Exception as e:
             print(f"❌ Error converting to SARIF: {e}")
             exit(1)
-            Path convert_to_sarif.py
+            "@ | Set-Content -Path convert_to_sarif.py
+            python convert_to_sarif.py
 
 
 
