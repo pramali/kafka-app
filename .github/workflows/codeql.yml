@@ -90,7 +90,7 @@ jobs:
            except Exception as e:
             print(f"❌ Error converting to SARIF: {e}")
             exit(1)
-            '@ | Set-Content -Path convert_to_sarif.py
+            Path convert_to_sarif.py
 
 
 
