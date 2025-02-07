@@ -100,7 +100,7 @@ jobs:
             Set-Content -Path convert_to_sarif.py -Value $content -Encoding UTF8
              # Run the Python script with UTF-8 encoding and redirect output to a file to avoid terminal issues
             #python convert_to_sarif.py > output.log 2>&1
-            python convert_to_sarif.py > trufflehog_output.sarif 2>&1
+            python convert_to_sarif.py trufflehog_output.json trufflehog_output.sarif
 
              # Check if SARIF file exists and output the result to the log
             if (Test-Path "trufflehog_output.sarif") {
