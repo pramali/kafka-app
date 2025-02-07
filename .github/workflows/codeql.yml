@@ -59,7 +59,6 @@ jobs:
           #python -c "import sys, json;
           #data = json.load(open('trufflehog_output.json'));
           #sarif = {'version': '2.1.0','runs': [{'tool': {'driver': {'name': 'TruffleHog'}},'results': [{'message': {'text': f'Secret found in {item["path"]}'}, 'locations': [{'physicalLocation': {'artifactLocation': {'uri': item["path"]}}}]} for item in data]}]};print(json.dumps(sarif, indent=2));" > trufflehog_output.sarif
-
       - name: Convert TruffleHog JSON to SARIF
         shell: pwsh
         run: |
@@ -71,13 +70,18 @@ jobs:
           try:
               sys.stdout.reconfigure(encoding='utf-8')
 
-              # Verify input file exists
               input_file = "trufflehog_output.json"
+              output_file = "trufflehog_output.sarif"
+
               if not os.path.exists(input_file):
                   raise FileNotFoundError(f"❌ Input file '{input_file}' not found!")
 
+              # Read JSON with error handling
               with open(input_file, "r", encoding="utf-8") as file:
-                  data = json.load(file)
+                  try:
+                      data = json.load(file)
+                  except json.JSONDecodeError:
+                      raise ValueError("❌ trufflehog_output.json is empty or not valid JSON!")
 
               if not isinstance(data, list) or len(data) == 0:
                   raise ValueError("❌ No valid findings in TruffleHog output!")
@@ -99,11 +103,10 @@ jobs:
                   }]
               }
 
-              sarif_file = "trufflehog_output.sarif"
-              with open(sarif_file, "w", encoding="utf-8") as sf:
+              with open(output_file, "w", encoding="utf-8") as sf:
                   json.dump(sarif, sf, indent=2, ensure_ascii=False)
 
-              print(f"✅ SARIF file '{sarif_file}' created successfully!")
+              print(f"✅ SARIF file '{output_file}' created successfully!")
 
           except Exception as e:
               print(f"❌ Error converting to SARIF: {e}")
@@ -113,6 +116,7 @@ jobs:
           Set-Content -Path convert_to_sarif.py -Value $content -Encoding UTF8
           python convert_to_sarif.py
 
+     
       - name: Debug SARIF Output
         shell: pwsh
         run: |
