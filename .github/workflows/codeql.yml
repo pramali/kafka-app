@@ -66,16 +66,21 @@ jobs:
           $content = @'
           import json
           import sys
+          import os
 
           try:
-              # Ensure UTF-8 encoding for standard output
               sys.stdout.reconfigure(encoding='utf-8')
 
-              with open("trufflehog_output.json", "r", encoding="utf-8") as file:
+              # Verify input file exists
+              input_file = "trufflehog_output.json"
+              if not os.path.exists(input_file):
+                  raise FileNotFoundError(f"❌ Input file '{input_file}' not found!")
+
+              with open(input_file, "r", encoding="utf-8") as file:
                   data = json.load(file)
 
-              if not isinstance(data, list):
-                  raise ValueError("Unexpected TruffleHog JSON format")
+              if not isinstance(data, list) or len(data) == 0:
+                  raise ValueError("❌ No valid findings in TruffleHog output!")
 
               sarif = {
                   "version": "2.1.0",
@@ -94,32 +99,30 @@ jobs:
                   }]
               }
 
-              with open("trufflehog_output.sarif", "w", encoding="utf-8") as sarif_file:
-                  json.dump(sarif, sarif_file, indent=2, ensure_ascii=False)
+              sarif_file = "trufflehog_output.sarif"
+              with open(sarif_file, "w", encoding="utf-8") as sf:
+                  json.dump(sarif, sf, indent=2, ensure_ascii=False)
 
-              print("✅ SARIF file created successfully!")
+              print(f"✅ SARIF file '{sarif_file}' created successfully!")
 
           except Exception as e:
-              print("❌ Error converting to SARIF:", e)
+              print(f"❌ Error converting to SARIF: {e}")
               exit(1)
           '@
 
-          # Ensure UTF-8 encoding when writing the Python script
           Set-Content -Path convert_to_sarif.py -Value $content -Encoding UTF8
-          
-          # Force UTF-8 when executing Python
-          python convert_to_sarif.py | Out-File -FilePath output.log -Encoding utf8
+          python convert_to_sarif.py
 
-
-          # Verify if the SARIF file exists
+      - name: Debug SARIF Output
+        shell: pwsh
+        run: |
           if (Test-Path "trufflehog_output.sarif") {
-            echo "✅ SARIF report generated successfully."
+            Write-Host "✅ trufflehog_output.sarif generated successfully!"
             Get-Content trufflehog_output.sarif
           } else {
-            echo "❌ SARIF report NOT found!"
+            Write-Host "❌ SARIF report NOT found!"
             exit 1
           }
-
       - name: Upload SARIF file to GitHub Code Scanning Alerts
         uses: github/codeql-action/upload-sarif@v3
         with:
