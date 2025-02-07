@@ -8,21 +8,20 @@ on:
     branches:
       - master
 
-permissions:  
-  contents: read  
-  security-events: write  # ✅ Required for uploading SARIF  
+permissions:
+   contents: read
+   security-events: write  # ✅ Required for uploading SARIF results
 
 jobs:
   scan-secrets:
     name: Scan for Secrets on Windows
-    runs-on: windows-latest  # Windows runner
+    runs-on: windows-latest
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Install Python and TruffleHog
-        shell: pwsh
         run: |
           Invoke-WebRequest -Uri https://www.python.org/ftp/python/3.8.8/python-3.8.8-amd64.exe -OutFile python-installer.exe
           Start-Process -FilePath python-installer.exe -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1" -Wait
@@ -32,158 +31,89 @@ jobs:
       - name: Run TruffleHog Scan for Secrets
         shell: pwsh
         run: |
-          # Scan only YAML files using Get-ChildItem
+          # Find all YAML files
           $yaml_files = Get-ChildItem -Path . -Recurse -Include *.yml,*.yaml | Select-Object -ExpandProperty FullName
-    
+          
           if ($yaml_files.Count -eq 0) {
-                 Write-Host "⚠️ No YAML files found to scan."
-                 exit 0
-           }
-
-            # Run TruffleHog on each YAML file
-            $results = @()
-            foreach ($file in $yaml_files) {
-            Write-Host "🔍 Scanning file: $file"
-            $scan_output = trufflehog3 filesystem $file --format json
-           if ($scan_output) {
-               $results += $scan_output
-            }
+              Write-Host "⚠️ No YAML files found to scan."
+              exit 0
           }
 
-             # Convert results to valid JSON
-            if ($results.Count -gt 0) {
+          # Scan each file using TruffleHog3 and save results to JSON
+          $results = @()
+          foreach ($file in $yaml_files) {
+              Write-Host "🔍 Scanning file: $file"
+              $scan_output = trufflehog3 filesystem $file --entropy=False
+              if ($scan_output) {
+                  $results += "{""file"": ""$file"", ""output"": ""$scan_output""}"
+              }
+          }
+
+          # Convert results to JSON
+          if ($results.Count -gt 0) {
               $json_output = "[" + ($results -join ",") + "]"
-             $json_output | Out-File -Encoding utf8 trufflehog_output.json
+              $json_output | Out-File -Encoding utf8 trufflehog_output.json
           } else {
-            Write-Host "⚠️ No secrets found in YAML files."
-           exit 0
+              Write-Host "⚠️ No secrets found in YAML files."
+              exit 0
           }
 
-          # Debug: Print JSON output
-          Write-Host "🔍 Checking TruffleHog output..."
-          Get-Content trufflehog_output.json
-
-          # Validate JSON output
+      - name: Validate TruffleHog Output
+        shell: pwsh
+        run: |
           $output = Get-Content -Path trufflehog_output.json -Raw
           if ($output -match "^\s*\[.*\]\s*$") {
-                Write-Host "✅ Secrets detected and JSON output is valid."
+              Write-Host "✅ Secrets detected and JSON output is valid."
           } else {
-             Write-Host "⚠️ No valid JSON output detected. TruffleHog may not have found secrets."
-             exit 1
+              Write-Host "❌ Invalid JSON format! TruffleHog output is not in expected format."
+              exit 1
           }
 
-           
-
-
-
-
-
-      - name: Debug TruffleHog Output
+      - name: Convert JSON to SARIF
         shell: pwsh
         run: |
-          if (!(Test-Path "trufflehog_output.json")) {
-            Write-Host "❌ trufflehog_output.json NOT found!"
-            exit 1
-          }
+          python -c @"
+import json
 
-          $content = Get-Content -Path trufflehog_output.json -Raw
-          if ($content -eq "" -or $content -eq "[]" -or $null -eq $content) {
-            Write-Host "⚠️ No secrets found. Skipping SARIF generation."
-            exit 0
-          }
+try:
+    with open("trufflehog_output.json", "r", encoding='utf-8') as file:
+        data = json.load(file)
 
-          try {
-            $parsed = $content | ConvertFrom-Json
-            Write-Host "✅ Valid JSON detected."
-          } catch {
-            Write-Host "❌ Invalid JSON format!"
-            Write-Host "🔍 Debugging Output: $content"
-            exit 1
-          }
+    if not isinstance(data, list):
+        raise ValueError("Unexpected TruffleHog JSON format")
 
-      - name: Convert TruffleHog JSON to SARIF
-        shell: pwsh
-        run: |
-          $content = @'
-          import json
-          import sys
-          import os
+    sarif = {
+        "version": "2.1.0",
+        "runs": [{
+            "tool": {"driver": {"name": "TruffleHog"}},
+            "results": [
+                {
+                    "message": {"text": f"Secret found in {item.get('file', 'unknown file')}"},
+                    "locations": [{
+                        "physicalLocation": {
+                            "artifactLocation": {"uri": item.get("file", "unknown file")}
+                        }
+                    }]
+                }
+                for item in data
+            ]
+        }]
+    }
 
-          try:
-              sys.stdout.reconfigure(encoding='utf-8')
+    with open("trufflehog_output.sarif", "w", encoding='utf-8') as sarif_file:
+        json.dump(sarif, sarif_file, indent=2, ensure_ascii=False)
 
-              input_file = "trufflehog_output.json"
-              output_file = "trufflehog_output.sarif"
+    print("✅ SARIF file created successfully!")
 
-              if not os.path.exists(input_file):
-                  raise FileNotFoundError("❌ Input file not found!")
-
-              with open(input_file, "r", encoding="utf-8") as file:
-                  raw_content = file.read().strip()
-
-              if not raw_content or raw_content == "[]":
-                  print("⚠️ No valid findings in TruffleHog output. Skipping SARIF generation.")
-                  sys.exit(0)
-
-              try:
-                  data = json.loads(raw_content)
-              except json.JSONDecodeError as e:
-                  print(f"❌ Invalid JSON format: {e}")
-                  sys.exit(1)
-
-              if not isinstance(data, list) or len(data) == 0:
-                  print("⚠️ No secrets found. Skipping SARIF generation.")
-                  sys.exit(0)
-
-              sarif = {
-                  "version": "2.1.0",
-                  "runs": [{
-                      "tool": {"driver": {"name": "TruffleHog"}},
-                      "results": [
-                          {
-                              "message": {"text": f"Secret found in {item.get('path', 'unknown file')}"},
-                              "locations": [{
-                                  "physicalLocation": {
-                                      "artifactLocation": {"uri": item.get("path", "unknown file")},
-                                      "region": {
-                                          "startLine": item.get("line", 1),
-                                          "endLine": item.get("line", 1),
-                                          "startColumn": 1,
-                                          "endColumn": 1
-                                      }
-                                  }
-                              }]
-                          } for item in data if "path" in item
-                      ]
-                  }]
-              }
-
-              with open(output_file, "w", encoding="utf-8") as sf:
-                  json.dump(sarif, sf, indent=2, ensure_ascii=False)
-
-              print(f"✅ SARIF file '{output_file}' created successfully!")
-
-          except Exception as e:
-              print(f"❌ Error converting to SARIF: {e}")
-              exit(1)
-          '@
-
-          Set-Content -Path convert_to_sarif.py -Value $content -Encoding UTF8
+except Exception as e:
+    print(f"❌ Error converting to SARIF: {e}")
+    exit(1)
+"@ > convert_to_sarif.py
           python convert_to_sarif.py
-
-      - name: Debug SARIF Output
-        shell: pwsh
-        run: |
-          if (Test-Path "trufflehog_output.sarif") {
-            Write-Host "✅ SARIF file generated successfully!"
-            Get-Content trufflehog_output.sarif
-          } else {
-            Write-Host "⚠️ No SARIF file generated, skipping upload."
-            exit 0  # Do not fail if no secrets were found
-          }
 
       - name: Upload SARIF file to GitHub Code Scanning Alerts
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trufflehog_output.sarif
+          token: ${{ secrets.GITHUB_TOKEN }}
           wait-for-processing: true
