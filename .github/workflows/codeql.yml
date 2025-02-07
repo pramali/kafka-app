@@ -113,11 +113,12 @@ jobs:
                           {
                               "message": {"text": f"Secret found in {item.get('path', 'unknown file')}"},
                               "locations": [{
+
                                   "physicalLocation": {
                                       "artifactLocation": {"uri": item.get("path", "unknown file")},
                                       "region": {
-                                          "startLine": item.get("line", 1),
-                                          "endLine": item.get("line", 1),
+                                          "startLine": int(item.get("line", 1)),  # ✅ Ensure integer value
+                                          "endLine": int(item.get("line", 1)),    # ✅ Ensure integer value
                                           "startColumn": 1,
                                           "endColumn": 1
                                       }
