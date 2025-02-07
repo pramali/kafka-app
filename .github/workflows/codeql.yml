@@ -42,7 +42,7 @@ jobs:
       - name: Debug TruffleHog Output
         run: |
           echo "🔍 Checking if TruffleHog found secrets..."
-          Get-Content trufflehog_output.
+          Get-Content trufflehog_output.sarif
 
       - name: Check for TruffleHog SARIF File
         run: |
