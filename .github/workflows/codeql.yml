@@ -34,7 +34,7 @@ jobs:
         run: |
    
           #trufflehog3 filesystem . --json > trufflehog_output.json 2>&1
-          trufflehog3 ./ --json > trufflehog_output.json 2>&1
+           trufflehog3  ./ --json > trufflehog_output.json 2>&1
 
     
           if (Test-Path "trufflehog_output.json") {
