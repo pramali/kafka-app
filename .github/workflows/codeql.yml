@@ -26,20 +26,24 @@ jobs:
           Invoke-WebRequest -Uri https://www.python.org/ftp/python/3.8.8/python-3.8.8-amd64.exe -OutFile python-installer.exe
           Start-Process -FilePath python-installer.exe -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1" -Wait
           python --version
+
           # Install TruffleHog
           #pip install truffleHog3
           #pip install truffleHog3 --verbose
           pip install  --upgrade truffleHog3
+
       - name: Run TruffleHog Scan for Secrets
         run: |
           # Run TruffleHog and output the results in SARIF format
           trufflehog3  ./ --output trufflehog_output.json || Write-Host "Secrets detected, but continuing workflow."
           #trufflehog3 filesystem . --output trufflehog_output.json || Write-Host "Secrets detected, but continuing workflow."
           exit 0
+
       - name: Debug TruffleHog Output
         run: |
           echo "🔍 Checking if TruffleHog found secrets..."
           Get-Content trufflehog_output.json
+
       - name: Check for TruffleHog JSON File
         run: |
           # Ensure the SARIF file is generated
@@ -50,7 +54,65 @@ jobs:
             exit 1
           }
           # Convert JSON to SARIF (if necessary)
-          python -c "import sys, json; print(json.dumps({'version': '2.1.0', 'runs': [{'tool': {'driver': {'name': 'TruffleHog'}}, 'results': []}]}))" > trufflehog_output.sarif
+          #python -c "import sys, json; print(json.dumps({'version': '2.1.0', 'runs': [{'tool': {'driver': {'name': 'TruffleHog'}}, 'results': []}]}))" > trufflehog_output.sarif
+          
+          #python -c "import sys, json;
+          #data = json.load(open('trufflehog_output.json'));
+          #sarif = {'version': '2.1.0','runs': [{'tool': {'driver': {'name': 'TruffleHog'}},'results': [{'message': {'text': f'Secret found in {item["path"]}'}, 'locations': [{'physicalLocation': {'artifactLocation': {'uri': item["path"]}}}]} for item in data]}]};print(json.dumps(sarif, indent=2));" > trufflehog_output.sarif
+
+      - name: Convert TruffleHog JSON to SARIF
+        run: |
+          # Create a temporary Python script
+          #Set-Content -Path convert_to_sarif.py -Value @"
+          $content = @"
+          import json
+          try:
+             with open("trufflehog_output.json", "r", encoding='utf-8') as file:
+                  data = json.load(file)
+             if not isinstance(data, list):
+                  raise ValueError("Unexpected TruffleHog JSON format")
+             sarif = {
+               "version": "2.1.0",
+              "runs": [{
+              "tool": {"driver": {"name": "TruffleHog"}},
+              "results": [
+                {
+                    "message": {"text": f"Secret found in {item.get('path', 'unknown file')}"},
+                    "locations": [{
+                        "physicalLocation": {
+                            "artifactLocation": {"uri": item.get("path", "unknown file")}
+                        }
+                    }]
+                }
+                      for item in data if "path" in item
+                     ]
+            }]
+          }
+             print(f'Generated SARIF: {sarif}')
+             with open("trufflehog_output.sarif", "w", encoding='utf-8') as sarif_file:
+                 json.dump(sarif, sarif_file, indent=2, ensure_ascii=False)
+             print("✅ SARIF file created successfully!")
+          except Exception as e:
+            print(f"❌ Error converting to SARIF: {e}")
+            exit(1)
+          "@
+             # Save the Python script to a file
+            Set-Content -Path convert_to_sarif.py -Value $content -Encoding UTF8
+             # Run the Python script with UTF-8 encoding and redirect output to a file to avoid terminal issues
+            python convert_to_sarif.py > output.log 2>&1
+          
+
+             # Check if SARIF file exists and output the result to the log
+            if (Test-Path "trufflehog_output.sarif") {
+               Write-Host "✅ SARIF report generated successfully."
+               Get-Content trufflehog_output.sarif
+            } else {
+               Write-Host "❌ SARIF report NOT found!"
+               exit 1
+            }
+
+
+
           # Verify if the SARIF file exists
           if (Test-Path "trufflehog_output.sarif") {
             echo "✅ SARIF report generated successfully."
@@ -59,15 +121,16 @@ jobs:
             echo "❌ SARIF report NOT found!"
             exit 1
           }
-          
-      - name: Debug SARIF File
-        run: |
-          echo "🔍 Checking SARIF file before upload..."
-          Get-Content trufflehog_output.sarif
-          
+
       - name: Upload SARIF file to GitHub Code Scanning Alerts
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trufflehog_output.sarif
           token: ${{ secrets.GITHUB_TOKEN }}
           wait-for-processing: true
+          
+      - name: Debug SARIF File
+        run: |
+          echo "🔍 Checking SARIF file before upload..."
+          Get-Content trufflehog_output.sarif
+
