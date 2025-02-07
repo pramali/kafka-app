@@ -32,24 +32,46 @@ jobs:
       - name: Run TruffleHog Scan for Secrets
         shell: pwsh
         run: |
-             # Run TruffleHog and ensure JSON output
-             #trufflehog3 filesystem . --format json > trufflehog_output.json 2>&1
-             trufflehog3 filesystem . --format json --include '\.ya?ml$' > trufflehog_output.json 2>&1
+          # Scan only YAML files using Get-ChildItem
+          $yaml_files = Get-ChildItem -Path . -Recurse -Include *.yml,*.yaml | Select-Object -ExpandProperty FullName
     
-             # Debug: Print the output file
-             Write-Host "🔍 Checking TruffleHog output..."
-             Get-Content trufflehog_output.json
+          if ($yaml_files.Count -eq 0) {
+                 Write-Host "⚠️ No YAML files found to scan."
+                 exit 0
+           }
 
-             # Validate JSON output
-             $output = Get-Content -Path trufflehog_output.json -Raw
+            # Run TruffleHog on each YAML file
+            $results = @()
+            foreach ($file in $yaml_files) {
+            Write-Host "🔍 Scanning file: $file"
+            $scan_output = trufflehog3 filesystem $file --format json
+           if ($scan_output) {
+               $results += $scan_output
+            }
+          }
 
-             if ($output -match "^\s*\{.*\}\s*$") {
-                 Write-Host "✅ Secrets detected and JSON output is valid."
-             } else {
-                 Write-Host "⚠️ No valid JSON output detected. TruffleHog may not have found secrets."
-                 exit 1
-             }
-             exit 0
+             # Convert results to valid JSON
+            if ($results.Count -gt 0) {
+              $json_output = "[" + ($results -join ",") + "]"
+             $json_output | Out-File -Encoding utf8 trufflehog_output.json
+          } else {
+            Write-Host "⚠️ No secrets found in YAML files."
+           exit 0
+          }
+
+          # Debug: Print JSON output
+          Write-Host "🔍 Checking TruffleHog output..."
+          Get-Content trufflehog_output.json
+
+          # Validate JSON output
+          $output = Get-Content -Path trufflehog_output.json -Raw
+          if ($output -match "^\s*\[.*\]\s*$") {
+                Write-Host "✅ Secrets detected and JSON output is valid."
+          } else {
+             Write-Host "⚠️ No valid JSON output detected. TruffleHog may not have found secrets."
+             exit 1
+          }
+
            
 
 
