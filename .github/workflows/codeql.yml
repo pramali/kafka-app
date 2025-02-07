@@ -32,22 +32,22 @@ jobs:
       - name: Run TruffleHog Scan for Secrets
         shell: pwsh
         run: |
-   
-          #trufflehog3 filesystem . --json > trufflehog_output.json 2>&1
-           trufflehog3  ./ --output trufflehog_output.json || Write-Host "Secrets detected, but continuing workflow."
+             # Run TruffleHog and ensure JSON output
+             trufflehog3 filesystem . --json | Out-File -Encoding utf8 trufflehog_output.json
     
-          if (Test-Path "trufflehog_output.json") {
-              $output = Get-Content -Path trufflehog_output.json -Raw
-            if ($output -match "^\[.*\]$") {
-                 Write-Host "✅ Secrets detected and JSON output is valid."
-            } else {
-               Write-Host "⚠️ No valid JSON output detected. TruffleHog may not have found secrets."
-               exit 1
-            }
-            } else {
-              Write-Host "❌ JSON file not created!"
-              exit 1
+             # Debug: Print the output file
+             Write-Host "🔍 Checking TruffleHog output..."
+             Get-Content trufflehog_output.json
+
+             # Validate JSON output
+             $output = Get-Content -Path trufflehog_output.json -Raw
+             if ($output -match "^\[.*\]$") {
+               Write-Host "✅ Secrets detected and JSON output is valid."
+             } else {
+                  Write-Host "⚠️ No valid JSON output detected. TruffleHog may not have found secrets."
+                  exit 1
               }
+
 
 
 
