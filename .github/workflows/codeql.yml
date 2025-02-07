@@ -62,55 +62,36 @@ jobs:
 
       - name: Convert TruffleHog JSON to SARIF
         run: |
-          # Create a temporary Python script
-          #Set-Content -Path convert_to_sarif.py -Value @"
-          $content = @"
+          python <<EOF
           import json
           try:
-             with open("trufflehog_output.json", "r", encoding='utf-8') as file:
+              with open("trufflehog_output.json", "r", encoding='utf-8') as file:
                   data = json.load(file)
-             if not isinstance(data, list):
+              if not isinstance(data, list):
                   raise ValueError("Unexpected TruffleHog JSON format")
-             sarif = {
-               "version": "2.1.0",
-              "runs": [{
-              "tool": {"driver": {"name": "TruffleHog"}},
-              "results": [
-                {
-                    "message": {"text": f"Secret found in {item.get('path', 'unknown file')}"},
-                    "locations": [{
-                        "physicalLocation": {
-                            "artifactLocation": {"uri": item.get("path", "unknown file")}
-                        }
-                    }]
-                }
-                      for item in data if "path" in item
-                     ]
-            }]
-          }
-             print(f'Generated SARIF: {sarif}')
-             with open("trufflehog_output.sarif", "w", encoding='utf-8') as sarif_file:
-                 json.dump(sarif, sarif_file, indent=2, ensure_ascii=False)
-             print("✅ SARIF file created successfully!")
+              sarif = {
+                  "version": "2.1.0",
+                  "runs": [{
+                      "tool": {"driver": {"name": "TruffleHog"}},
+                      "results": [
+                          {
+                              "message": {"text": f"Secret found in {item.get('path', 'unknown file')}"},
+                              "locations": [{
+                                  "physicalLocation": {
+                                      "artifactLocation": {"uri": item.get("path", "unknown file")}
+                                  }
+                              }]
+                          } for item in data if "path" in item
+                      ]
+                  }]
+              }
+              with open("trufflehog_output.sarif", "w", encoding='utf-8') as sarif_file:
+                  json.dump(sarif, sarif_file, indent=2, ensure_ascii=False)
+              print("✅ SARIF file created successfully!")
           except Exception as e:
-            print(f"❌ Error converting to SARIF: {e}")
-            exit(1)
-          "@
-             # Save the Python script to a file
-            Set-Content -Path convert_to_sarif.py -Value $content -Encoding UTF8
-             # Run the Python script with UTF-8 encoding and redirect output to a file to avoid terminal issues
-            #python convert_to_sarif.py > output.log 2>&1
-            python convert_to_sarif.py trufflehog_output.json trufflehog_output.sarif
-
-             # Check if SARIF file exists and output the result to the log
-            if (Test-Path "trufflehog_output.sarif") {
-               Write-Host "✅ SARIF report generated successfully."
-               Get-Content trufflehog_output.sarif
-            } else {
-               Write-Host "❌ SARIF report NOT found!"
-               exit 1
-            }
-
+              print(f"❌ Error converting to SARIF: {e}")
+              exit(1)
+          EOF
 
 
           # Verify if the SARIF file exists
