@@ -61,10 +61,10 @@ jobs:
           #sarif = {'version': '2.1.0','runs': [{'tool': {'driver': {'name': 'TruffleHog'}},'results': [{'message': {'text': f'Secret found in {item["path"]}'}, 'locations': [{'physicalLocation': {'artifactLocation': {'uri': item["path"]}}}]} for item in data]}]};print(json.dumps(sarif, indent=2));" > trufflehog_output.sarif
 
       - name: Convert TruffleHog JSON to SARIF
+        shell: pwsh
         run: |
-          cat << 'EOF' > convert_to_sarif.py
+          $content = @'
           import json
-
           try:
               with open("trufflehog_output.json", "r", encoding="utf-8") as file:
                   data = json.load(file)
@@ -97,9 +97,9 @@ jobs:
           except Exception as e:
               print(f"❌ Error converting to SARIF: {e}")
               exit(1)
-          EOF
-
-          # Run the script to generate the SARIF file
+          '@
+          
+          Set-Content -Path convert_to_sarif.py -Value $content -Encoding UTF8
           python convert_to_sarif.py
 
           # Verify if the SARIF file exists
