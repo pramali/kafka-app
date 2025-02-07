@@ -41,6 +41,13 @@ jobs:
 
              # Validate JSON output
              $output = Get-Content -Path trufflehog_output.json -Raw
+
+             if ($output -match "^\s*\{.*\}\s*$") {
+                 Write-Host "✅ Secrets detected and JSON output is valid."
+             } else {
+                 Write-Host "⚠️ No valid JSON output detected. TruffleHog may not have found secrets."
+                 exit 1
+             }
              exit 0
            
 
