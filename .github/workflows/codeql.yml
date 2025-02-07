@@ -36,7 +36,7 @@ jobs:
         run: |
           # Run TruffleHog and output the results in SARIF format
           #trufflehog3  ./ --output trufflehog_output.sarif || Write-Host "Secrets detected, but continuing workflow."
-          trufflehog3 filesystem . --output trufflehog_output.json || Write-Host "Secrets detected, but continuing workflow."
+          trufflehog3 filesystem . --output trufflehog_output.sarif || Write-Host "Secrets detected, but continuing workflow."
           exit 0
 
       - name: Debug TruffleHog Output
