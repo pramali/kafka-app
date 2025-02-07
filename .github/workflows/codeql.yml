@@ -95,12 +95,12 @@ jobs:
 
               try:
                   data = json.loads(raw_content)
-              except json.JSONDecodeError as e:
-                  raise ValueError(f"❌ Invalid JSON format in TruffleHog output: {e}")
+              #except json.JSONDecodeError as e:
+                  #raise ValueError(f"❌ Invalid JSON format in TruffleHog output: {e}")
 
-              if not isinstance(data, list) or len(data) == 0:
-                  print("⚠️ No valid findings in TruffleHog output. Skipping SARIF generation.")
-                  sys.exit(0)
+              #if not isinstance(data, list) or len(data) == 0:
+                  #print("⚠️ No valid findings in TruffleHog output. Skipping SARIF generation.")
+                  #sys.exit(0)
 
               sarif = {
                   "version": "2.1.0",
