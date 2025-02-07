@@ -32,11 +32,11 @@ jobs:
       - name: Run TruffleHog Scan for Secrets
         shell: pwsh
         run: |
-          trufflehog3 --json . | Out-File -Encoding utf8 trufflehog_output.json
+          trufflehog3 . | Out-File -Encoding utf8 trufflehog_output.json
           exit 0
           if ($LASTEXITCODE -ne 0) {
-            Write-Host "⚠️ TruffleHog detected secrets, but continuing workflow."
-          }
+                Write-Host "⚠️ TruffleHog detected secrets, but continuing workflow."
+           }
 
       - name: Debug TruffleHog Output
         shell: pwsh
