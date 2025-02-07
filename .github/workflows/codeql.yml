@@ -33,11 +33,18 @@ jobs:
           pip install  --upgrade truffleHog3
 
       - name: Run TruffleHog Scan for Secrets
+        shell: pwsh
         run: |
-          # Run TruffleHog and output the results in SARIF format
-          #trufflehog3  ./ --output trufflehog_output.json || Write-Host "Secrets detected, but continuing workflow."
-          trufflehog3 filesystem . --output trufflehog_output.json || Write-Host "Secrets detected, but continuing workflow."
-          exit 0
+          if (Test-Path "trufflehog_output.json") {
+             Remove-Item "trufflehog_output.json"
+           }
+
+   
+          trufflehog3 filesystem . --json | Out-File -Encoding utf8 trufflehog_output.json
+          if ($LASTEXITCODE -ne 0) {
+              Write-Host "⚠️ TruffleHog detected secrets, but continuing workflow."
+             }
+
 
       - name: Debug TruffleHog Output
         run: |
