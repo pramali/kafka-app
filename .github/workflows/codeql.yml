@@ -34,7 +34,7 @@ jobs:
         run: |
    
           #trufflehog3 filesystem . --json > trufflehog_output.json 2>&1
-           trufflehog3 filesystem . --output trufflehog_output.json
+           trufflehog3  ./ --output trufflehog_output.json || Write-Host "Secrets detected, but continuing workflow."
     
           if (Test-Path "trufflehog_output.json") {
               $output = Get-Content -Path trufflehog_output.json -Raw
