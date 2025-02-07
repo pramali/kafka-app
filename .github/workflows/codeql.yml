@@ -44,21 +44,22 @@ jobs:
           echo "🔍 Checking if TruffleHog found secrets..."
           Get-Content trufflehog_output.json
 
-      - name: Check for TruffleHog JSON File
+      - name: Check TruffleHog Output
+        shell: pwsh
         run: |
-          # Ensure the SARIF file is generated
           if (Test-Path "trufflehog_output.json") {
-            echo "✅ JSON report generated successfully."
+            Write-Host "✅ trufflehog_output.json found!"
+            $content = Get-Content -Path trufflehog_output.json -Raw
+            if ($content -eq "[]" -or $content -eq "") {
+              Write-Host "⚠️ No secrets found by TruffleHog. Skipping SARIF conversion."
+              exit 0
+            }
+            Write-Host "🔍 TruffleHog detected secrets!"
           } else {
-            echo "❌ JSON report NOT found!"
+            Write-Host "❌ trufflehog_output.json NOT found!"
             exit 1
           }
-          # Convert JSON to SARIF (if necessary)
-          #python -c "import sys, json; print(json.dumps({'version': '2.1.0', 'runs': [{'tool': {'driver': {'name': 'TruffleHog'}}, 'results': []}]}))" > trufflehog_output.sarif
-          
-          #python -c "import sys, json;
-          #data = json.load(open('trufflehog_output.json'));
-          #sarif = {'version': '2.1.0','runs': [{'tool': {'driver': {'name': 'TruffleHog'}},'results': [{'message': {'text': f'Secret found in {item["path"]}'}, 'locations': [{'physicalLocation': {'artifactLocation': {'uri': item["path"]}}}]} for item in data]}]};print(json.dumps(sarif, indent=2));" > trufflehog_output.sarif
+
       - name: Convert TruffleHog JSON to SARIF
         shell: pwsh
         run: |
@@ -76,15 +77,15 @@ jobs:
               if not os.path.exists(input_file):
                   raise FileNotFoundError(f"❌ Input file '{input_file}' not found!")
 
-              # Read JSON with error handling
               with open(input_file, "r", encoding="utf-8") as file:
                   try:
                       data = json.load(file)
                   except json.JSONDecodeError:
-                      raise ValueError("❌ trufflehog_output.json is empty or not valid JSON!")
+                      raise ValueError("❌ trufflehog_output.json is not valid JSON!")
 
               if not isinstance(data, list) or len(data) == 0:
-                  raise ValueError("❌ No valid findings in TruffleHog output!")
+                  print("⚠️ No valid findings in TruffleHog output. Skipping SARIF generation.")
+                  sys.exit(0)  # Exit gracefully, don't fail the job
 
               sarif = {
                   "version": "2.1.0",
@@ -115,7 +116,6 @@ jobs:
 
           Set-Content -Path convert_to_sarif.py -Value $content -Encoding UTF8
           python convert_to_sarif.py
-
      
       - name: Debug SARIF Output
         shell: pwsh
