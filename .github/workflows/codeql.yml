@@ -59,6 +59,12 @@ jobs:
             echo "❌ SARIF report NOT found!"
             exit 1
           }
+          
+      - name: Debug SARIF File
+        run: |
+          echo "🔍 Checking SARIF file before upload..."
+          Get-Content trufflehog_output.sarif
+          
       - name: Upload SARIF file to GitHub Code Scanning Alerts
         uses: github/codeql-action/upload-sarif@v3
         with:
