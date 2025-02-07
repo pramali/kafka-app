@@ -90,8 +90,8 @@ jobs:
                   raw_content = file.read().strip()
 
               # Ensure content is valid JSON
-              if not raw_content or raw_content == "[]":
-                  raise ValueError("⚠️ No valid findings in TruffleHog output. Skipping SARIF generation.")
+              #if not raw_content or raw_content == "[]":
+                  #raise ValueError("⚠️ No valid findings in TruffleHog output. Skipping SARIF generation.")
 
               try:
                   data = json.loads(raw_content)
