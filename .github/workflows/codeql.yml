@@ -33,7 +33,8 @@ jobs:
         shell: pwsh
         run: |
              # Run TruffleHog and ensure JSON output
-             trufflehog3 filesystem . --format json > trufflehog_output.json 2>&1
+             #trufflehog3 filesystem . --format json > trufflehog_output.json 2>&1
+             trufflehog3 filesystem . --format json --include '\.ya?ml$' > trufflehog_output.json 2>&1
     
              # Debug: Print the output file
              Write-Host "🔍 Checking TruffleHog output..."
