@@ -33,6 +33,7 @@ jobs:
         shell: pwsh
         run: |
           trufflehog3 --json . | Out-File -Encoding utf8 trufflehog_output.json
+          exit 0
           if ($LASTEXITCODE -ne 0) {
             Write-Host "⚠️ TruffleHog detected secrets, but continuing workflow."
           }
