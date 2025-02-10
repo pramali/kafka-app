@@ -43,8 +43,18 @@ jobs:
              $output = Get-Content -Path trufflehog_output.json -Raw
              exit 0
            
-
-
+      - name: Send Email Notification
+        if: failure()
+        uses: dawidd6/action-send-mail@v4
+        with:
+          connection_url: ${{ secrets.MAIL_CONNECTION }}
+          to: 'pramod.mali44@gmail.com'
+          from: 'pramod.mali44@gmail.com'
+          subject: 'Secret Detected in Repository'
+          body: |
+            TruffleHog has detected a secret in the repository.
+            Please review the findings and take necessary actions.
+    
 
 
 
@@ -158,15 +168,4 @@ jobs:
         with:
           sarif_file: trufflehog_output.sarif
           wait-for-processing: true
-      - name: Send Email Alert if Secrets Found
-        if: failure()
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 587
-          username: ${{ secrets.EMAIL_USERNAME }}
-          password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: "🚨 Secret Detected in GitHub Repo!"
-          to: pramod.mali44@gmail.com
-          from: pramod.mali44@gmail.com
-          body: "A secret was detected in the repository ${{ github.repository }}. Please investigate immediately."
+     
