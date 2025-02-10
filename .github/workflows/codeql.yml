@@ -44,7 +44,7 @@ jobs:
              exit 0
            
       - name: Send Email Notification
-        if: failure()
+        #if: failure()
         uses: dawidd6/action-send-mail@v4
         with:
           connection_url: ${{ secrets.MAIL_CONNECTION }}
