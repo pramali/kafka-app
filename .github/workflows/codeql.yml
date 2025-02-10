@@ -162,9 +162,8 @@ jobs:
           server_port: 587
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
-          #connection_url: ${{ secrets.MAIL_CONNECTION }}
           subject: "🚨 Secret Detected in GitHub Repo!"
-          to: pramod.mali44@gmail.com,sindhuguduru585@gmail.com
+          to: pramod.mali44@gmail.com
           from: pramod.mali44@gmail.com
           body: "A secret was detected in the repository ${{ github.repository }}. Please investigate immediately."
      
